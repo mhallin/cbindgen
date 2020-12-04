@@ -442,6 +442,7 @@ impl Source for Struct {
             Language::C if config.style.generate_typedef() => out.write("typedef "),
             Language::C | Language::Cxx => {}
             Language::Cython => out.write(config.style.cython_def()),
+            Language::Csharp => {}
         }
 
         // Cython extern declarations don't manage layouts, layouts are defined entierly by the
@@ -454,6 +455,10 @@ impl Source for Struct {
                     ReprAlign::Align(_) => {} // Not supported
                 }
             }
+        }
+
+        if config.language == Language::Csharp {
+            out.write("public ");
         }
 
         out.write("struct");
@@ -493,7 +498,14 @@ impl Source for Struct {
             out.new_line();
         }
 
-        out.write_vertical_source_list(&self.fields, ListType::Cap(";"));
+        out.write_vertical_source_list(
+            &self.fields,
+            if config.language == Language::Csharp {
+                ListType::Wrap("public ", ";")
+            } else {
+                ListType::Cap(";")
+            },
+        );
         if config.language == Language::Cython && self.fields.is_empty() {
             out.write("pass");
         }

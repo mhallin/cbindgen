@@ -6,13 +6,13 @@
 typedef struct Opaque Opaque;
 
 typedef union {
-  int32_t x;
-  float y;
+  [FieldOffset(0)] int32_t x;
+  [FieldOffset(0)] float y;
 } Normal;
 
 typedef union {
-  int32_t x;
-  float y;
+  [FieldOffset(0)] int32_t x;
+  [FieldOffset(0)] float y;
 } NormalWithZST;
 
 #ifdef __cplusplus

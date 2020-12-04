@@ -294,9 +294,16 @@ impl Source for Union {
             Language::C if config.style.generate_typedef() => out.write("typedef "),
             Language::C | Language::Cxx => {}
             Language::Cython => out.write(config.style.cython_def()),
+            Language::Csharp => {}
         }
 
-        out.write("union");
+        if config.language == Language::Csharp {
+            out.write("[StructLayout(LayoutKind.Explicit)]");
+            out.new_line();
+            out.write("struct");
+        } else {
+            out.write("union");
+        }
 
         // Cython supports `packed` on structs (see comments there), but not on unions.
         if config.language != Language::Cython {
@@ -328,7 +335,12 @@ impl Source for Union {
             out.new_line();
         }
 
-        out.write_vertical_source_list(&self.fields, ListType::Cap(";"));
+        if config.language == Language::Csharp {
+            out.write_vertical_source_list(&self.fields, ListType::Cap(";"));
+        } else {
+            out.write_vertical_source_list(&self.fields, ListType::Wrap("[FieldOffset(0)] ", ";"));
+        }
+
         if config.language == Language::Cython && self.fields.is_empty() {
             out.write("pass");
         }

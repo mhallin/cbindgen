@@ -176,13 +176,23 @@ impl CDecl {
 
     fn write<F: Write>(&self, out: &mut SourceWriter<F>, ident: Option<&str>, config: &Config) {
         // Write the type-specifier and type-qualifier first
-        if !self.type_qualifers.is_empty() {
-            write!(out, "{} ", self.type_qualifers);
+        if config.language != Language::Csharp {
+            if !self.type_qualifers.is_empty() {
+                write!(out, "{} ", self.type_qualifers);
+            }
         }
 
         if config.language != Language::Cython {
             if let Some(ref ctype) = self.type_ctype {
                 write!(out, "{} ", ctype.to_str());
+            }
+        }
+
+        if config.language == Language::Csharp {
+            for declarator in self.declarators.iter() {
+                if let CDeclarator::Ptr { .. } = declarator {
+                    out.write("ref ");
+                }
             }
         }
 
@@ -212,9 +222,11 @@ impl CDecl {
                     is_nullable,
                     is_ref,
                 } => {
-                    out.write(if is_ref { "&" } else { "*" });
-                    if is_const {
-                        out.write("const ");
+                    if config.language != Language::Csharp {
+                        out.write(if is_ref { "&" } else { "*" });
+                        if is_const {
+                            out.write("const ");
+                        }
                     }
                     if !is_nullable && !is_ref && config.language != Language::Cython {
                         if let Some(attr) = &config.pointer.non_null_attribute {
@@ -280,6 +292,9 @@ impl CDecl {
                             let arg_ident = arg_ident.as_ref().map(|x| x.as_ref());
 
                             arg_ty.write(out, arg_ident, config);
+                            if arg_ident.is_none() && config.language == Language::Csharp {
+                                write!(out, " _{}", i);
+                            }
                         }
                         out.pop_tab();
                     } else {
@@ -292,6 +307,9 @@ impl CDecl {
                             let arg_ident = arg_ident.as_ref().map(|x| x.as_ref());
 
                             arg_ty.write(out, arg_ident, config);
+                            if arg_ident.is_none() && config.language == Language::Csharp {
+                                write!(out, " _{}", i);
+                            }
                         }
                     }
                     out.write(")");

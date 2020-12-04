@@ -23,6 +23,7 @@ pub enum Language {
     Cxx,
     C,
     Cython,
+    Csharp,
 }
 
 impl FromStr for Language {
@@ -42,6 +43,10 @@ impl FromStr for Language {
             "C" => Ok(Language::C),
             "cython" => Ok(Language::Cython),
             "Cython" => Ok(Language::Cython),
+            "cs" => Ok(Language::Csharp),
+            "CS" => Ok(Language::Csharp),
+            "csharp" => Ok(Language::Csharp),
+            "CSharp" => Ok(Language::Csharp),
             _ => Err(format!("Unrecognized Language: '{}'.", s)),
         }
     }
@@ -54,6 +59,7 @@ impl Language {
         match self {
             Language::Cxx | Language::C => "typedef",
             Language::Cython => "ctypedef",
+            Language::Csharp => "using",
         }
     }
 }
@@ -854,6 +860,19 @@ pub struct CythonConfig {
     pub cimports: BTreeMap<String, Vec<String>>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
+#[serde(default)]
+pub struct CsharpConfig {
+    /// Custom trailer for C#, this replaces the trailer specified at top-level
+    pub trailer: Option<String>,
+    /// Class name for the wrapper for all non-impl functions
+    pub toplevel_class_name: String,
+    /// Library name for DllImport(...). Expanded as is, so you need to manually add quotes if you want a string.
+    pub dll_name: String,
+}
+
 /// A collection of settings to customize the generated bindings.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -939,6 +958,8 @@ pub struct Config {
     pub pointer: PtrConfig,
     /// Configuration options specific to Cython.
     pub cython: CythonConfig,
+    /// Configuration options specific to C#
+    pub csharp: CsharpConfig
 }
 
 impl Default for Config {
@@ -979,6 +1000,17 @@ impl Default for Config {
             documentation_style: DocumentationStyle::Auto,
             pointer: PtrConfig::default(),
             cython: CythonConfig::default(),
+            csharp: CsharpConfig::default(),
+        }
+    }
+}
+
+impl Default for CsharpConfig {
+    fn default() -> Self {
+        CsharpConfig {
+            trailer: Default::default(),
+            toplevel_class_name: "Functions".to_owned(),
+            dll_name: "\"bindgen.dll\"".to_owned(),
         }
     }
 }

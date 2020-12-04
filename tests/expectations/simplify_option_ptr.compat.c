@@ -12,9 +12,9 @@ typedef struct {
 } Foo;
 
 typedef union {
-  const Opaque *x;
-  Opaque *y;
-  void (*z)(void);
+  [FieldOffset(0)] const Opaque *x;
+  [FieldOffset(0)] Opaque *y;
+  [FieldOffset(0)] void (*z)(void);
 } Bar;
 
 #ifdef __cplusplus

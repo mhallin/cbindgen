@@ -8,8 +8,8 @@ typedef struct {
 } Foo_Bar;
 
 typedef union {
-  int32_t something;
-  Foo_Bar subexpressions;
+  [FieldOffset(0)] int32_t something;
+  [FieldOffset(0)] Foo_Bar subexpressions;
 } Bar;
 
 #ifdef __cplusplus

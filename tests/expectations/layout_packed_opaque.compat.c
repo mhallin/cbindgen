@@ -12,18 +12,18 @@ typedef struct OpaquePackedStruct OpaquePackedStruct;
 typedef struct OpaquePackedUnion OpaquePackedUnion;
 
 typedef union CBINDGEN_ALIGNED(1) {
-  uintptr_t variant1;
-  uint8_t *variant2;
+  [FieldOffset(0)] uintptr_t variant1;
+  [FieldOffset(0)] uint8_t *variant2;
 } Align1Union;
 
 typedef union CBINDGEN_ALIGNED(4) {
-  uintptr_t variant1;
-  uint8_t *variant2;
+  [FieldOffset(0)] uintptr_t variant1;
+  [FieldOffset(0)] uint8_t *variant2;
 } Align4Union;
 
 typedef union CBINDGEN_ALIGNED(16) {
-  uintptr_t variant1;
-  uint8_t *variant2;
+  [FieldOffset(0)] uintptr_t variant1;
+  [FieldOffset(0)] uint8_t *variant2;
 } Align16Union;
 
 typedef struct CBINDGEN_ALIGNED(1) {

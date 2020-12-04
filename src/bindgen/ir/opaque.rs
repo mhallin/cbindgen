@@ -169,6 +169,12 @@ impl Source for OpaqueItem {
                 out.write("pass");
                 out.close_brace(false);
             }
+            Language::Csharp => {
+                write!(out, "public struct {}", self.export_name());
+                out.open_brace();
+                out.write("IntPtr _opaque;");
+                out.close_brace(false);
+            }
         }
 
         condition.write_after(config, out);

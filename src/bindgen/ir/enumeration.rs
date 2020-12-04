@@ -638,7 +638,7 @@ impl Source for Enum {
             // corresponding C code. So we can inline the unnamed union into the struct and get the
             // same observable result. Moreother we have to do it because Cython doesn't support
             // unnamed unions.
-            if !inline_tag_field && config.language != Language::Cython {
+            if !inline_tag_field && config.language != Language::Cython && config.language != Language::Csharp {
                 out.write("union");
                 out.open_brace();
             }
@@ -648,7 +648,7 @@ impl Source for Enum {
 
             // Close union of all variants with data, only in the non-inline tag scenario.
             // See the comment about Cython on `open_brace`.
-            if !inline_tag_field && config.language != Language::Cython {
+            if !inline_tag_field && config.language != Language::Cython && config.language != Language::Csharp {
                 out.close_brace(true);
             }
 
@@ -741,6 +741,14 @@ impl Enum {
                     write!(out, "{}enum {}", config.style.cython_def(), tag_name);
                 }
             }
+            Language::Csharp => {
+                write!(out, "public enum {}", tag_name);
+                if let Some(prim) = size {
+                    if prim != "uintptr_t" && prim != "intptr_t" {
+                        write!(out, ": {}", prim);
+                    }
+                }
+            }
         }
         out.open_brace();
 
@@ -769,7 +777,7 @@ impl Enum {
                 out.write("#ifndef __cplusplus");
             }
 
-            if config.language != Language::Cxx {
+            if config.language != Language::Cxx && config.language != Language::Csharp {
                 out.new_line();
                 write!(out, "{} {} {};", config.language.typedef(), prim, tag_name);
             }
@@ -795,9 +803,16 @@ impl Enum {
             Language::C if config.style.generate_typedef() => out.write("typedef "),
             Language::C | Language::Cxx => {}
             Language::Cython => out.write(config.style.cython_def()),
+            Language::Csharp => {}
         }
 
-        out.write(if inline_tag_field { "union" } else { "struct" });
+        if config.language == Language::Csharp {
+            out.write("[StructLayout(LayoutKind.Explicit)]");
+            out.new_line();
+            out.write("public struct");
+        } else {
+            out.write(if inline_tag_field { "union" } else { "struct" });
+        }
 
         if self.annotations.must_use(config) {
             if let Some(ref anno) = config.structure.must_use {
@@ -862,6 +877,10 @@ impl Enum {
             out.write("enum ");
         }
 
+        if config.language == Language::Csharp {
+            out.write("[FieldOffset(0)] public ");
+        }
+
         write!(out, "{} tag;", tag_name);
 
         if wrap_tag {
@@ -882,6 +901,9 @@ impl Enum {
                 // Cython doesn't support conditional enum variants.
                 if config.language != Language::Cython {
                     condition.write_before(config, out);
+                }
+                if config.language == Language::Csharp {
+                    write!(out, "[FieldOffset(0)] public ");
                 }
                 if config.style.generate_typedef() || config.language == Language::Cython {
                     write!(out, "{} {};", body.export_name(), name);

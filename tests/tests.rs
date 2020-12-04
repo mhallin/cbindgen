@@ -36,6 +36,9 @@ fn run_cbindgen(
         Language::Cython => {
             command.arg("--lang").arg("cython");
         }
+        Language::Csharp => {
+            command.arg("--lang").arg("cs");
+        }
     }
 
     if let Some(style) = style {
@@ -72,6 +75,7 @@ fn compile(
         Language::Cxx => env::var("CXX").unwrap_or_else(|_| "g++".to_owned()),
         Language::C => env::var("CC").unwrap_or_else(|_| "gcc".to_owned()),
         Language::Cython => env::var("CYTHON").unwrap_or_else(|_| "cython".to_owned()),
+        Language::Csharp => env::var("CSC").unwrap_or_else(|_| "csc".to_owned()),
     };
 
     let file_name = cbindgen_output
@@ -131,6 +135,11 @@ fn compile(
             command.arg("-o").arg(&object);
             command.arg(cbindgen_output);
         }
+        Language::Csharp => {
+            command.arg(&format!("-out:{}", object.to_string_lossy()));
+            command.arg("-target:library");
+            command.arg(cbindgen_output);
+        }
     }
 
     println!("Running: {:?}", command);
@@ -174,6 +183,7 @@ fn run_compile_test(
         // is extension-sensitive and won't work on them, so we use implementation files (`.pyx`)
         // in the test suite.
         Language::Cython => ".pyx",
+        Language::Csharp => ".cs",
     };
 
     let skip_warning_as_error = name.rfind(SKIP_WARNING_AS_ERROR_SUFFIX).is_some();
@@ -265,6 +275,17 @@ fn test_file(cbindgen_path: &'static str, name: &'static str, filename: &'static
         tmp_dir,
         Language::Cxx,
         /* cpp_compat = */ false,
+        None,
+        &mut HashSet::new(),
+    );
+
+    run_compile_test(
+        cbindgen_path,
+        name,
+        &test,
+        tmp_dir,
+        Language::Csharp,
+        false,
         None,
         &mut HashSet::new(),
     );

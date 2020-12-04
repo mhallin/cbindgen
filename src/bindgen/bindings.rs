@@ -220,6 +220,32 @@ impl Bindings {
                     out.new_line();
                     out.close_brace(false);
                 }
+                Language::Csharp => {
+                    out.write("using System;");
+                    out.new_line();
+                    out.write("using System.Runtime.InteropServices;");
+                    out.new_line();
+                    out.write("using uint8_t = System.Byte;");
+                    out.new_line();
+                    out.write("using int8_t = System.SByte;");
+                    out.new_line();
+                    out.write("using uint16_t = System.UInt16;");
+                    out.new_line();
+                    out.write("using int16_t = System.Int16;");
+                    out.new_line();
+                    out.write("using uint32_t = System.UInt32;");
+                    out.new_line();
+                    out.write("using int32_t = System.Int32;");
+                    out.new_line();
+                    out.write("using uint64_t = System.UInt64;");
+                    out.new_line();
+                    out.write("using int64_t = System.Int64;");
+                    out.new_line();
+                    out.write("using intptr_t = System.IntPtr;");
+                    out.new_line();
+                    out.write("using uintptr_t = System.UIntPtr;");
+                    out.new_line();
+                }
             }
         }
 
@@ -307,6 +333,16 @@ impl Bindings {
                     out.new_line();
                 }
             }
+            
+            if self.config.language == Language::Csharp {
+                if let Some(using_namespaces) = &self.config.using_namespaces {
+                    for namespace in using_namespaces {
+                        out.new_line();
+                        write!(out, "using {};", namespace);
+                    }
+                    out.new_line();
+                }
+            }
 
             if self.config.language == Language::Cxx || self.config.cpp_compatible_c() {
                 out.new_line();
@@ -368,7 +404,16 @@ impl Bindings {
             }
             out.new_line();
         }
-        if let Some(ref f) = self.config.trailer {
+        let trailer = match self.config.language {
+            Language::Csharp => self
+                .config
+                .csharp
+                .trailer
+                .as_ref()
+                .or(self.config.trailer.as_ref()),
+            _ => self.config.trailer.as_ref(),
+        };
+        if let Some(ref f) = trailer {
             out.new_line_if_not_start();
             write!(out, "{}", f);
             if !f.ends_with('\n') {
@@ -378,7 +423,10 @@ impl Bindings {
     }
 
     fn all_namespaces(&self) -> Vec<&str> {
-        if self.config.language != Language::Cxx && !self.config.cpp_compatible_c() {
+        if self.config.language != Language::Cxx
+            && self.config.language != Language::Csharp
+            && !self.config.cpp_compatible_c()
+        {
             return vec![];
         }
         let mut ret = vec![];

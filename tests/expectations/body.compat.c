@@ -48,8 +48,8 @@ typedef struct {
 } MyFancyEnum;
 
 typedef union {
-  float f;
-  uint32_t u;
+  [FieldOffset(0)] float f;
+  [FieldOffset(0)] uint32_t u;
   int32_t extra_member;
 } MyUnion;
 
@@ -87,8 +87,8 @@ typedef struct {
 
 typedef union {
     int32_t extra_member;
-  float f;
-  uint32_t u;
+  [FieldOffset(0)] float f;
+  [FieldOffset(0)] uint32_t u;
 } MyUnion_Prepended;
 
 #ifdef __cplusplus

@@ -152,7 +152,7 @@ fn main() {
                 .long("lang")
                 .value_name("LANGUAGE")
                 .help("Specify the language to output bindings in")
-                .possible_values(&["c++", "C++", "c", "C", "cython", "Cython"]),
+                .possible_values(&["c++", "C++", "c", "C", "cython", "Cython", "cs", "CS"]),
         )
         .arg(
             Arg::with_name("cpp-compat")

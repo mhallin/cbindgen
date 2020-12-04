@@ -27,8 +27,8 @@ typedef struct {
 } C_AwesomeB;
 
 typedef union {
-  int32_t x;
-  float y;
+  [FieldOffset(0)] int32_t x;
+  [FieldOffset(0)] float y;
 } C_D;
 
 typedef C_A C_F;

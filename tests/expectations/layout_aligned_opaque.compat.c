@@ -29,6 +29,6 @@ typedef struct CBINDGEN_PACKED {
 } PackedStruct;
 
 typedef union CBINDGEN_PACKED {
-  uintptr_t variant1;
-  uint8_t *variant2;
+  [FieldOffset(0)] uintptr_t variant1;
+  [FieldOffset(0)] uint8_t *variant2;
 } PackedUnion;

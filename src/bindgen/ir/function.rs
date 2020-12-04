@@ -244,7 +244,13 @@ impl Source for Function {
 
             func.documentation.write(config, out);
 
-            if func.extern_decl {
+            if config.language == Language::Csharp {
+                write!(out, "[DllImport({})]", config.csharp.dll_name);
+                out.new_line();
+                out.write("public static ");
+            }
+
+            if func.extern_decl || config.language == Language::Csharp {
                 out.write("extern ");
             } else {
                 if let Some(ref prefix) = prefix {
@@ -291,7 +297,13 @@ impl Source for Function {
 
             func.documentation.write(config, out);
 
-            if func.extern_decl {
+            if config.language == Language::Csharp {
+                write!(out, "[DllImport({})]", config.csharp.dll_name);
+                out.new_line();
+                out.write("public static ");
+            }
+
+            if func.extern_decl || config.language == Language::Csharp {
                 out.write("extern ");
             } else {
                 if let Some(ref prefix) = prefix {
@@ -332,12 +344,21 @@ impl Source for Function {
 
         let option_1 = out.measure(|out| write_1(self, config, out));
 
+        if config.language == Language::Csharp {
+            write!(out, "public partial class {}", config.csharp.toplevel_class_name);
+            out.open_brace();
+        }
+
         if (config.function.args == Layout::Auto && option_1 <= config.line_length)
             || config.function.args == Layout::Horizontal
         {
             write_1(self, config, out);
         } else {
             write_2(self, config, out);
+        }
+
+        if config.language == Language::Csharp {
+            out.close_brace(false);
         }
     }
 }

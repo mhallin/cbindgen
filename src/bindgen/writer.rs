@@ -15,6 +15,8 @@ pub enum ListType<'a> {
     Join(&'a str),
     /// End each item with a str.
     Cap(&'a str),
+    /// Start each line with a str, end each line with another.
+    Wrap(&'a str, &'a str),
 }
 
 /// An empty file used for creating a null source writer and measuring line
@@ -154,7 +156,7 @@ impl<'a, F: Write> SourceWriter<'a, F> {
 
     pub fn open_brace(&mut self) {
         match self.bindings.config.language {
-            Language::Cxx | Language::C => match self.bindings.config.braces {
+            Language::Cxx | Language::C | Language::Csharp => match self.bindings.config.braces {
                 Braces::SameLine => {
                     self.write(" {");
                     self.push_tab();
@@ -177,7 +179,7 @@ impl<'a, F: Write> SourceWriter<'a, F> {
 
     pub fn close_brace(&mut self, semicolon: bool) {
         match self.bindings.config.language {
-            Language::Cxx | Language::C => {
+            Language::Cxx | Language::C | Language::Csharp => {
                 self.pop_tab();
                 self.new_line();
                 if semicolon {
@@ -211,6 +213,10 @@ impl<'a, F: Write> SourceWriter<'a, F> {
         list_type: ListType<'b>,
     ) {
         for (i, ref item) in items.iter().enumerate() {
+            if let ListType::Wrap(prefix, _) = list_type {
+                write!(self, "{}", prefix);
+            }
+
             item.write(&self.bindings.config, self);
 
             match list_type {
@@ -219,7 +225,7 @@ impl<'a, F: Write> SourceWriter<'a, F> {
                         write!(self, "{}", text);
                     }
                 }
-                ListType::Cap(text) => {
+                ListType::Cap(text) | ListType::Wrap(_, text) => {
                     write!(self, "{}", text);
                 }
             }
@@ -234,6 +240,10 @@ impl<'a, F: Write> SourceWriter<'a, F> {
         let align_length = self.line_length_for_align();
         self.push_set_spaces(align_length);
         for (i, ref item) in items.iter().enumerate() {
+            if let ListType::Wrap(prefix, _) = list_type {
+                write!(self, "{}", prefix);
+            }
+
             item.write(&self.bindings.config, self);
 
             match list_type {
@@ -242,7 +252,7 @@ impl<'a, F: Write> SourceWriter<'a, F> {
                         write!(self, "{}", text);
                     }
                 }
-                ListType::Cap(text) => {
+                ListType::Cap(text) | ListType::Wrap(_, text) => {
                     write!(self, "{}", text);
                 }
             }

@@ -292,6 +292,13 @@ impl Literal {
             Literal::Expr(v) => match (&**v, config.language) {
                 ("true", Language::Cython) => write!(out, "True"),
                 ("false", Language::Cython) => write!(out, "False"),
+                (v, Language::Csharp) => {
+                    if v.parse::<f32>().is_ok() && v.contains('.') {
+                        write!(out, "{}f", v);
+                    } else {
+                        write!(out, "{}", v);
+                    }
+                }
                 (v, _) => write!(out, "{}", v),
             },
             Literal::Path(v) => write!(out, "{}", v),
@@ -333,6 +340,7 @@ impl Literal {
                     Language::C => write!(out, "({})", export_name),
                     Language::Cxx => write!(out, "{}", export_name),
                     Language::Cython => write!(out, "<{}>", export_name),
+                    Language::Csharp => write!(out, "new {} ", export_name),
                 }
 
                 write!(out, "{{ ");
@@ -350,6 +358,7 @@ impl Literal {
                             Language::Cxx => write!(out, "/* .{} = */ ", ordered_key),
                             Language::C => write!(out, ".{} = ", ordered_key),
                             Language::Cython => {}
+                            Language::Csharp => write!(out, " {} = ", ordered_key),
                         }
                         lit.write(config, out);
                     }
@@ -595,6 +604,25 @@ impl Constant {
                 // but still useful as documentation, so we write it as a comment.
                 write!(out, " {} # = ", name);
                 value.write(config, out);
+            }
+            Language::Csharp => {
+                write!(
+                    out,
+                    "public partial class {}",
+                    config.csharp.toplevel_class_name
+                );
+                out.open_brace();
+
+                match &self.value {
+                    Literal::Struct { .. } => out.write("public static readonly "),
+                    _ => out.write("public const "),
+                }
+                self.ty.write(config, out);
+                write!(out, " {} = ", name);
+                value.write(config, out);
+                write!(out, ";");
+
+                out.close_brace(false);
             }
         }
 

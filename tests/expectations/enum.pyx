@@ -173,7 +173,8 @@ cdef extern from *:
             O o,
             P p);
 
-#if 0
+#if __cplusplus
+#if FALSE
 ''' '
 #endif
 
@@ -184,6 +185,7 @@ static_assert(offsetof(CBINDGEN_STRUCT(P), p0) == 1, "unexpected offset for p0")
 static_assert(offsetof(CBINDGEN_STRUCT(P), p0) == 1, "unexpected offset for p1");
 static_assert(sizeof(CBINDGEN_STRUCT(P)) == 4, "unexpected size for P");
 
-#if 0
+#if FALSE
 ' '''
+#endif
 #endif
