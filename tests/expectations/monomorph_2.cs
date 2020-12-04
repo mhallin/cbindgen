@@ -29,12 +29,12 @@ public struct List_B {
   public uintptr_t count;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void foo(List_A a);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void bar(List_B b);
 }

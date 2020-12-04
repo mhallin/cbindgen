@@ -77,14 +77,14 @@ public struct BarHandle {
 };
 #endif
 
-public partial class Functions {
+public partial class Library {
 #if (defined(PLATFORM_UNIX) && defined(X11))
   [DllImport("bindgen.dll")]
   public static extern void root(FooHandle a, C c);
 #endif
 }
 
-public partial class Functions {
+public partial class Library {
 #if (defined(PLATFORM_WIN) || defined(M_32))
   [DllImport("bindgen.dll")]
   public static extern void root(BarHandle a, C c);

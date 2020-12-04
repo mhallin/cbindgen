@@ -11,18 +11,18 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   public const uint64_t UNSIGNED_NEEDS_ULL_SUFFIX = 9223372036854775808ULL;
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint64_t UNSIGNED_DOESNT_NEED_ULL_SUFFIX = 8070450532247928832;
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t SIGNED_NEEDS_ULL_SUFFIX = -9223372036854775808ULL;
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t SIGNED_DOESNT_NEED_ULL_SUFFIX = -9223372036854775807;
 }

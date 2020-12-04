@@ -15,17 +15,17 @@ public struct Foo {
 
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void extra_debug_fn();
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void cbindgen();
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo a);
 }

@@ -19,24 +19,24 @@ public struct Foo {
   public int32_t a;
   public uint32_t b;
 };
-public partial class Functions {
+public partial class Library {
   public static readonly Foo Foo_FOO = new Foo {  a = 42,  b = 47 };
 }
-public partial class Functions {
+public partial class Library {
   public static readonly Foo Foo_FOO2 = new Foo {  a = 42,  b = 47 };
 }
-public partial class Functions {
+public partial class Library {
   public static readonly Foo Foo_FOO3 = new Foo {  a = 42,  b = 47 };
 }
 
 
-public partial class Functions {
+public partial class Library {
   public static readonly Foo BAR = new Foo {  a = 42,  b = 1337 };
 }
 
 
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo x, Bar bar);
 }

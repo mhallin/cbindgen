@@ -474,6 +474,13 @@ impl Bindings {
                 NamespaceOperation::Open => write!(out, "namespace {} {{", namespace),
                 NamespaceOperation::Close => write!(out, "}} // namespace {}", namespace),
             }
+            if self.config.language == Language::Csharp {
+                if op == NamespaceOperation::Open {
+                    out.push_tab();
+                } else {
+                    out.pop_tab();
+                }
+            }
         }
 
         out.new_line();

@@ -27,7 +27,7 @@ public struct Foo_u64 {
   public ref ref int32_t i;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref int32_t arg, ref Foo_u64 foo, ref ref Opaque d);
 }

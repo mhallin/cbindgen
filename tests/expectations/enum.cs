@@ -182,7 +182,7 @@ public struct P {
   [FieldOffset(0)] public P1_Body p1;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref Opaque opaque,
                                  A a,

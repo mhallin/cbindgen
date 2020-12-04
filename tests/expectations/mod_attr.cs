@@ -18,13 +18,13 @@ using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
 #if defined(FOO)
-public partial class Functions {
+public partial class Library {
   public const int32_t FOO = 1;
 }
 #endif
 
 #if defined(BAR)
-public partial class Functions {
+public partial class Library {
   public const int32_t BAR = 2;
 }
 #endif
@@ -41,14 +41,14 @@ public struct Bar {
 };
 #endif
 
-public partial class Functions {
+public partial class Library {
 #if defined(FOO)
   [DllImport("bindgen.dll")]
   public static extern void foo(ref Foo foo);
 #endif
 }
 
-public partial class Functions {
+public partial class Library {
 #if defined(BAR)
   [DllImport("bindgen.dll")]
   public static extern void bar(ref Bar bar);

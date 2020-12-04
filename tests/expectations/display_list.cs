@@ -50,7 +50,7 @@ public struct DisplayItem {
   [FieldOffset(0)] public Image_Body image;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern bool push_item(DisplayItem item);
 }

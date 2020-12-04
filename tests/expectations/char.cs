@@ -15,7 +15,7 @@ public struct Foo {
   public uint32_t a;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo a);
 }

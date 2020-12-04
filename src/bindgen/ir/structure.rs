@@ -498,14 +498,7 @@ impl Source for Struct {
             out.new_line();
         }
 
-        out.write_vertical_source_list(
-            &self.fields,
-            if config.language == Language::Csharp {
-                ListType::Wrap("public ", ";")
-            } else {
-                ListType::Cap(";")
-            },
-        );
+        out.write_vertical_source_list(&self.fields, ListType::Cap(";"));
         if config.language == Language::Cython && self.fields.is_empty() {
             out.write("pass");
         }

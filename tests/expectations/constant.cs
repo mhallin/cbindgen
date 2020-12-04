@@ -11,46 +11,46 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   public const int32_t FOO = 10;
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t DELIMITER = ':';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t LEFTCURLY = '{';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t QUOTE = '\'';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t TAB = '\t';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t NEWLINE = '\n';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t HEART = U'\U00002764';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t EQUID = U'\U00010083';
 }
 
-public partial class Functions {
+public partial class Library {
   public const float ZOM = 3.14f;
 }
 
 /*
  A single-line doc comment.
  */
-public partial class Functions {
+public partial class Library {
   public const int8_t POS_ONE = 1;
 }
 
@@ -60,39 +60,40 @@ public partial class Functions {
  doc
  comment.
  */
-public partial class Functions {
+public partial class Library {
   public const int8_t NEG_ONE = -1;
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t SHIFT = 3;
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t XBOOL = 1;
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t XFALSE = ((0 << SHIFT) | XBOOL);
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t XTRUE = (1 << (SHIFT | XBOOL));
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint8_t CAST = (uint8_t)'A';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t DOUBLE_CAST = (uint32_t)(float)1;
 }
 
 public struct Foo {
-  public int32_t x[FOO];
+  [MarshalAs(UnmanagedType.ByValArray, SizeConst=FOO)]
+  public int32_t[] x;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo x);
 }

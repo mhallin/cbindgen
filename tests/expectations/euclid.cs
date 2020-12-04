@@ -101,7 +101,7 @@ public struct TypedTransform2D_f32__LayoutUnit__UnknownUnit {
   public float m32;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(TypedLength_f32__UnknownUnit length_a,
                                  TypedLength_f32__LayoutUnit length_b,

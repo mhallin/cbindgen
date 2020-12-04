@@ -42,17 +42,17 @@ public struct ContainsNoExternTy {
 };
 #endif
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo a);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void renamed_func(RenamedTy a);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void no_extern_func(ContainsNoExternTy a);
 }

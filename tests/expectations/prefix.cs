@@ -11,21 +11,23 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   public const int32_t PREFIX_LEN = 22;
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t PREFIX_X = (22 << 22);
 }
 
-public partial class Functions {
+public partial class Library {
   public const int64_t PREFIX_Y = (PREFIX_X + PREFIX_X);
 }
 
-using PREFIX_NamedLenArray = int32_t[PREFIX_LEN];
+using PREFIX_NamedLenArray = [MarshalAs(UnmanagedType.ByValArray, SizeConst=PREFIX_LEN)]
+int32_t[];
 
-using PREFIX_ValuedLenArray = int32_t[22];
+using PREFIX_ValuedLenArray = [MarshalAs(UnmanagedType.ByValArray, SizeConst=22)]
+int32_t[];
 
 public enum PREFIX_AbsoluteFontWeight_Tag: uint8_t {
   Weight,
@@ -44,7 +46,7 @@ public struct PREFIX_AbsoluteFontWeight {
   [FieldOffset(0)] public PREFIX_Weight_Body weight;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(PREFIX_NamedLenArray x,
                                  PREFIX_ValuedLenArray y,

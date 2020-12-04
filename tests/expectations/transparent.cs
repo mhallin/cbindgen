@@ -32,18 +32,18 @@ using TransparentComplexWrapper_i32 = DummyStruct;
 using TransparentPrimitiveWrapper_i32 = uint32_t;
 
 using TransparentPrimitiveWithAssociatedConstants = uint32_t;
-public partial class Functions {
+public partial class Library {
   public static readonly TransparentPrimitiveWithAssociatedConstants TransparentPrimitiveWithAssociatedConstants_ZERO = 0;
 }
-public partial class Functions {
+public partial class Library {
   public static readonly TransparentPrimitiveWithAssociatedConstants TransparentPrimitiveWithAssociatedConstants_ONE = 1;
 }
 
-public partial class Functions {
+public partial class Library {
   public static readonly TransparentPrimitiveWrappingStructure EnumWithAssociatedConstantInImpl_TEN = 10;
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(TransparentComplexWrappingStructTuple a,
                                  TransparentPrimitiveWrappingStructTuple b,

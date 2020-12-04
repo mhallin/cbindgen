@@ -23,7 +23,7 @@ public struct Vec_String {
   IntPtr _opaque;
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref Vec_String a, ref Option_i32 b, ref Result_i32__String c);
 }

@@ -16,13 +16,13 @@ public struct ABC {
   public uint32_t b;
   public uint32_t c;
 };
-public partial class Functions {
+public partial class Library {
   public static readonly ABC ABC_abc = new ABC {  a = 1.0f,  b = 2,  c = 3 };
 }
-public partial class Functions {
+public partial class Library {
   public static readonly ABC ABC_bac = new ABC {  a = 1.0f,  b = 2,  c = 3 };
 }
-public partial class Functions {
+public partial class Library {
   public static readonly ABC ABC_cba = new ABC {  a = 1.0f,  b = 2,  c = 3 };
 }
 
@@ -31,17 +31,17 @@ public struct BAC {
   public float a;
   public int32_t c;
 };
-public partial class Functions {
+public partial class Library {
   public static readonly BAC BAC_abc = new BAC {  b = 1,  a = 2.0f,  c = 3 };
 }
-public partial class Functions {
+public partial class Library {
   public static readonly BAC BAC_bac = new BAC {  b = 1,  a = 2.0f,  c = 3 };
 }
-public partial class Functions {
+public partial class Library {
   public static readonly BAC BAC_cba = new BAC {  b = 1,  a = 2.0f,  c = 3 };
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ABC a1, BAC a2);
 }

@@ -41,7 +41,7 @@ using Unit = int32_t;
 
 using SpecialStatus = Status;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(IntFoo x, DoubleFoo y, Unit z, SpecialStatus w);
 }

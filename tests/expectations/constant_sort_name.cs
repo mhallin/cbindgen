@@ -11,14 +11,14 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   public const uint8_t A = 0;
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint8_t B = 0;
 }
 
-extern const uint8_t C;
+extern const public uint8_t C;
 
-extern const uint8_t D;
+extern const public uint8_t D;

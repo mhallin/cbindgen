@@ -43,44 +43,44 @@ public struct Pointers_u64 {
   public ref uint64_t k;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void value_arg(References arg);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void mutltiple_args(ref int32_t CBINDGEN_NONNULL arg,
                                            ref Pointers_u64 foo,
                                            ref ref Opaque CBINDGEN_NONNULL CBINDGEN_NONNULL d);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void ref_arg(ref Pointers_u64 CBINDGEN_NONNULL arg);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void mut_ref_arg(ref Pointers_u64 CBINDGEN_NONNULL arg);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void optional_ref_arg(ref Pointers_u64 arg);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void optional_mut_ref_arg(ref Pointers_u64 arg);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void nullable_const_ptr(ref Pointers_u64 arg);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void nullable_mut_ptr(ref Pointers_u64 arg);
 }

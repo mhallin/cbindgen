@@ -21,14 +21,14 @@ public struct S {
 
 using A = uint8_t;
 
-public partial class Functions {
+public partial class Library {
   public static readonly S C1 = new S {  field = 0 };
 }
 
-public partial class Functions {
+public partial class Library {
   public const E C2 = V;
 }
 
-public partial class Functions {
+public partial class Library {
   public const A C3 = 0;
 }

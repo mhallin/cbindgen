@@ -18,13 +18,13 @@ using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
 #if defined(NOT_DEFINED)
-public partial class Functions {
+public partial class Library {
   public const int32_t DEFAULT_X = 8;
 }
 #endif
 
 #if defined(DEFINED)
-public partial class Functions {
+public partial class Library {
   public const int32_t DEFAULT_X = 42;
 }
 #endif
@@ -51,7 +51,7 @@ public struct Root {
   public Bar w;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Root a);
 }

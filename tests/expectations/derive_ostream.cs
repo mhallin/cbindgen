@@ -93,7 +93,7 @@ public struct I {
   [FieldOffset(0)] public ThereAgain_Body there_again;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(A a, B b, C c, D d, F f, H h, I i);
 }

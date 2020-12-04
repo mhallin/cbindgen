@@ -45,7 +45,7 @@ using Foo = FastHashMap_i32__i32;
 
 using Bar = Result_Foo;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref Foo a, ref Bar b);
 }

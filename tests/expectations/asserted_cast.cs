@@ -87,7 +87,7 @@ public struct K {
   [FieldOffset(0)] public K_Bar_Body bar;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void foo(H h, I i, J j, K k);
 }

@@ -16,7 +16,8 @@ public enum Foo_Tag {
 };
 
 public struct A_Body {
-  public float _0[20];
+  [MarshalAs(UnmanagedType.ByValArray, SizeConst=20)]
+  public float[] _0;
 };
 
 [StructLayout(LayoutKind.Explicit)]
@@ -25,7 +26,7 @@ public struct Foo {
   [FieldOffset(0)] public A_Body a;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo a);
 }

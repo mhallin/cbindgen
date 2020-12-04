@@ -23,7 +23,7 @@ using Usize = size_t;
 
 using Isize = ptrdiff_t;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Usize _0, Isize _1, UE _2, IE _3);
 }

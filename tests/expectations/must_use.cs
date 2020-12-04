@@ -35,7 +35,7 @@ public struct MUST_USE_STRUCT OwnedPtr_i32 {
   public ref int32_t ptr;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern MaybeOwnedPtr_i32 maybe_consume(OwnedPtr_i32 input);
 }

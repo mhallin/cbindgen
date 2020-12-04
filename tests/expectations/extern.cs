@@ -16,12 +16,12 @@ public struct Normal {
   public float y;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern int32_t foo();
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void bar(Normal a);
 }

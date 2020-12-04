@@ -47,7 +47,7 @@ public struct Tuple_f32__f32 {
 
 using Indirection_f32 = Tuple_f32__f32;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo_i32 a,
                                  Foo_f32 b,

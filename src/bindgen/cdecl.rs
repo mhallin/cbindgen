@@ -38,6 +38,7 @@ struct CDecl {
     type_generic_args: Vec<Type>,
     declarators: Vec<CDeclarator>,
     type_ctype: Option<DeclarationType>,
+    is_struct_field: bool,
 }
 
 impl CDecl {
@@ -48,6 +49,7 @@ impl CDecl {
             type_generic_args: Vec::new(),
             declarators: Vec::new(),
             type_ctype: None,
+            is_struct_field: false,
         }
     }
 
@@ -79,6 +81,11 @@ impl CDecl {
         let mut cdecl = CDecl::new();
         cdecl.build_func(f, layout_vertical, config);
         cdecl
+    }
+
+    fn is_field(mut self) -> Self {
+        self.is_struct_field = true;
+        self
     }
 
     fn build_func(&mut self, f: &Function, layout_vertical: bool, config: &Config) {
@@ -188,15 +195,51 @@ impl CDecl {
             }
         }
 
+        // Convert "void*" to "IntPtr", but everything else to "ref T"
         if config.language == Language::Csharp {
-            for declarator in self.declarators.iter() {
-                if let CDeclarator::Ptr { .. } = declarator {
-                    out.write("ref ");
+            let is_array;
+            if let Some(array_size) = self.declarators.iter().find_map(|d| match d {
+                CDeclarator::Array(size) => Some(size),
+                _ => None,
+            }) {
+                write!(
+                    out,
+                    "[MarshalAs(UnmanagedType.ByValArray, SizeConst={})]",
+                    array_size
+                );
+                out.new_line();
+                is_array = true;
+            } else {
+                is_array = false;
+            }
+
+            if self.is_struct_field && ident.is_some() {
+                out.write("public ");
+            }
+
+            let is_void_ptr = self.type_name == "void"
+                && self
+                    .declarators
+                    .iter()
+                    .any(|d| matches!(d, CDeclarator::Ptr{..}));
+
+            if is_void_ptr {
+                out.write("IntPtr");
+            } else {
+                for declarator in self.declarators.iter() {
+                    if let CDeclarator::Ptr { .. } = declarator {
+                        out.write("ref ");
+                    }
+                }
+                write!(out, "{}", self.type_name);
+
+                if is_array {
+                    out.write("[]");
                 }
             }
+        } else {
+            write!(out, "{}", self.type_name);
         }
-
-        write!(out, "{}", self.type_name);
 
         if !self.type_generic_args.is_empty() {
             out.write("<");
@@ -266,7 +309,10 @@ impl CDecl {
                     if last_was_pointer {
                         out.write(")");
                     }
-                    write!(out, "[{}]", constant);
+
+                    if config.language != Language::Csharp {
+                        write!(out, "[{}]", constant);
+                    }
 
                     last_was_pointer = false;
                 }
@@ -331,7 +377,7 @@ pub fn write_func<F: Write>(
 }
 
 pub fn write_field<F: Write>(out: &mut SourceWriter<F>, t: &Type, ident: &str, config: &Config) {
-    CDecl::from_type(t, config).write(out, Some(ident), config);
+    CDecl::from_type(t, config).is_field().write(out, Some(ident), config);
 }
 
 pub fn write_type<F: Write>(out: &mut SourceWriter<F>, t: &Type, config: &Config) {

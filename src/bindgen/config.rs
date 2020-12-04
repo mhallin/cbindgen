@@ -1009,7 +1009,7 @@ impl Default for CsharpConfig {
     fn default() -> Self {
         CsharpConfig {
             trailer: Default::default(),
-            toplevel_class_name: "Functions".to_owned(),
+            toplevel_class_name: "Library".to_owned(),
             dll_name: "\"bindgen.dll\"".to_owned(),
         }
     }

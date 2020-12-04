@@ -16,7 +16,7 @@ public struct dep_struct {
   public double y;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern uint32_t get_x(ref dep_struct dep_struct);
 }

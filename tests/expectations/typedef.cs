@@ -18,7 +18,7 @@ public struct Foo_i32__i32 {
 
 using IntFoo_i32 = Foo_i32__i32;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(IntFoo_i32 a);
 }

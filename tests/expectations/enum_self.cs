@@ -38,7 +38,7 @@ public struct Bar {
   [FieldOffset(0)] public Max_Body max;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Bar b);
 }

@@ -19,12 +19,12 @@ using uintptr_t = System.UIntPtr;
 #endif // NO_RETURN_ATTR
 
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void loop_forever() NO_RETURN_ATTR;
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern uint8_t normal_return();
 }

@@ -19,13 +19,13 @@ public struct Foo {
 
 };
 
-extern const int32_t NUMBER;
+extern const public int32_t NUMBER;
 
-extern Foo FOO;
+extern public Foo FOO;
 
-extern const Bar BAR;
+extern const public Bar BAR;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root();
 }

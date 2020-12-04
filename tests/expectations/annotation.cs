@@ -71,7 +71,7 @@ public struct H {
   [FieldOffset(0)] public There_Body there;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(A x, B y, C z, F f, H h);
 }

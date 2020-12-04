@@ -21,11 +21,11 @@ public struct PREFIXFoo {
   public PREFIXBar bar;
 };
 
-public partial class Functions {
+public partial class Library {
   public static readonly PREFIXFoo PREFIXVAL = new PREFIXFoo {  a = 42,  b = 1337,  bar = new PREFIXBar {  a = 323 } };
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(PREFIXFoo x);
 }

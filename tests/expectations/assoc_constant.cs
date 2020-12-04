@@ -14,14 +14,14 @@ using uintptr_t = System.UIntPtr;
 public struct Foo {
 
 };
-public partial class Functions {
+public partial class Library {
   public const int32_t Foo_GA = 10;
 }
-public partial class Functions {
+public partial class Library {
   public const float Foo_ZO = 3.14f;
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Foo x);
 }

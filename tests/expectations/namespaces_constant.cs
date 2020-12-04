@@ -12,24 +12,25 @@ using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
 namespace constants {
-namespace test {
+  namespace test {
 
-public partial class Functions {
-  public const int32_t FOO = 10;
-}
+    public partial class Library {
+      public const int32_t FOO = 10;
+    }
 
-public partial class Functions {
-  public const float ZOM = 3.14f;
-}
+    public partial class Library {
+      public const float ZOM = 3.14f;
+    }
 
-public struct Foo {
-  public int32_t x[FOO];
-};
+    public struct Foo {
+      [MarshalAs(UnmanagedType.ByValArray, SizeConst=FOO)]
+      public int32_t[] x;
+    };
 
-public partial class Functions {
-  [DllImport("bindgen.dll")]
-  public static extern void root(Foo x);
-}
+    public partial class Library {
+      [DllImport("bindgen.dll")]
+      public static extern void root(Foo x);
+    }
 
-} // namespace test
-} // namespace constants
+    } // namespace test
+  } // namespace constants

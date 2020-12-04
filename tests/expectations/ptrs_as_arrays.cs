@@ -11,29 +11,40 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
-  public static extern void ptr_as_array(uint32_t n, uint32_t arg[3], ref uint64_t v);
+  public static extern void ptr_as_array(uint32_t n,
+                                         [MarshalAs(UnmanagedType.ByValArray, SizeConst=3)]
+                                         uint32_t[] arg,
+                                         ref uint64_t v);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
-  public static extern void ptr_as_array1(uint32_t n, uint32_t arg[3], uint64_t v[4]);
+  public static extern void ptr_as_array1(uint32_t n,
+                                          [MarshalAs(UnmanagedType.ByValArray, SizeConst=3)]
+                                          uint32_t[] arg,
+                                          [MarshalAs(UnmanagedType.ByValArray, SizeConst=4)]
+                                          uint64_t[] v);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
-  public static extern void ptr_as_array2(uint32_t n, uint32_t arg[], uint64_t v[]);
+  public static extern void ptr_as_array2(uint32_t n,
+                                          [MarshalAs(UnmanagedType.ByValArray, SizeConst=)]
+                                          uint32_t[] arg,
+                                          [MarshalAs(UnmanagedType.ByValArray, SizeConst=)]
+                                          uint64_t[] v);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void ptr_as_array_wrong_syntax(ref uint32_t arg,
                                                       ref uint32_t v,
                                                       ref uint32_t _2);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void ptr_as_array_unnamed(ref uint32_t _0, ref uint32_t _1);
 }

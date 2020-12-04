@@ -162,7 +162,7 @@ public struct StyleTaz {
   [FieldOffset(0)] public StyleTaz2_Body taz2;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void foo(ref StyleFoo_i32 foo,
                                 ref StyleBar_i32 bar,

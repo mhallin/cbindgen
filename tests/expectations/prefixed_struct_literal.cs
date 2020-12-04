@@ -15,15 +15,15 @@ public struct PREFIXFoo {
   public int32_t a;
   public uint32_t b;
 };
-public partial class Functions {
+public partial class Library {
   public static readonly PREFIXFoo PREFIXFoo_FOO = new PREFIXFoo {  a = 42,  b = 47 };
 }
 
-public partial class Functions {
+public partial class Library {
   public static readonly PREFIXFoo PREFIXBAR = new PREFIXFoo {  a = 42,  b = 1337 };
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(PREFIXFoo x);
 }

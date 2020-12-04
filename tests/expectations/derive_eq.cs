@@ -48,7 +48,7 @@ public struct Bar {
   [FieldOffset(0)] public FooParen_Body foo_paren;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern Foo root(Bar aBar);
 }

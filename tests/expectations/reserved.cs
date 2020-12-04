@@ -76,7 +76,7 @@ public struct F {
   [FieldOffset(0)] public float_Body float_;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(A a, B b, C c, E e, F f, int32_t namespace_, float float_);
 }

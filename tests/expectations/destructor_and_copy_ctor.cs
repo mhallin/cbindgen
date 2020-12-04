@@ -234,7 +234,7 @@ public struct Qux {
   [FieldOffset(0)] public Qux2_Body qux2;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref Foo_u32 a,
                                  ref Baz_i32 b,

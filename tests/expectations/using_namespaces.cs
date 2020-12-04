@@ -13,11 +13,11 @@ using uintptr_t = System.UIntPtr;
 
 namespace root {
 
-using std;
+  using std;
 
-public partial class Functions {
-  [DllImport("bindgen.dll")]
-  public static extern void root();
-}
+  public partial class Library {
+    [DllImport("bindgen.dll")]
+    public static extern void root();
+  }
 
-} // namespace root
+  } // namespace root

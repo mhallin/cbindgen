@@ -13,6 +13,6 @@ using uintptr_t = System.UIntPtr;
 
 using Transparent = uint8_t;
 
-public partial class Functions {
+public partial class Library {
   public static readonly Transparent FOO = 0;
 }

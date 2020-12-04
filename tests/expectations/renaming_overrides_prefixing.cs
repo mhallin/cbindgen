@@ -20,7 +20,7 @@ public struct B {
   public float y;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref StyleA a, B b);
 }

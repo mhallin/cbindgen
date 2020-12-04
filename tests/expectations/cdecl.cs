@@ -11,15 +11,16 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-using A = ref void()();
+using A = IntPtr()();
 
-using B = ref void()();
+using B = IntPtr()();
 
 using C = ref bool()(int32_t _0, int32_t _1);
 
 using D = ref ref bool(()(int32_t _0))(float _0);
 
-using E = ref ref int32_t(()())[16];
+using E = [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+ref ref int32_t[](()());
 
 using F = ref int32_t;
 
@@ -27,26 +28,31 @@ using G = ref ref int32_t;
 
 using H = ref ref int32_t;
 
-using I = ref int32_t()[16];
+using I = [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+ref int32_t[]();
 
 using J = ref ref double()(float _0);
 
-using K = int32_t[16];
+using K = [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+int32_t[];
 
-using L = ref int32_t[16];
+using L = [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+ref int32_t[];
 
-using M = ref bool([16])(int32_t _0, int32_t _1);
+using M = [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+ref bool[]()(int32_t _0, int32_t _1);
 
-using N = ref void([16])(int32_t _0, int32_t _1);
+using N = [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)]
+IntPtr()(int32_t _0, int32_t _1);
 
-using P = ref void()(int32_t named1st, bool _1, bool named3rd, int32_t _);
+using P = IntPtr()(int32_t named1st, bool _1, bool named3rd, int32_t _);
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
-  public static extern ref void (O())();
+  public static extern IntPtr (O())();
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(A a,
                                  B b,

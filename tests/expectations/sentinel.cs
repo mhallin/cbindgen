@@ -58,7 +58,7 @@ public struct C {
   [FieldOffset(0)] public C_C2_Body c2;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(A a, B b, C c);
 }

@@ -11,6 +11,8 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-extern char MUT_GLOBAL_ARRAY[128];
+extern [MarshalAs(UnmanagedType.ByValArray, SizeConst=128)]
+public char[] MUT_GLOBAL_ARRAY;
 
-extern const char CONST_GLOBAL_ARRAY[128];
+extern const [MarshalAs(UnmanagedType.ByValArray, SizeConst=128)]
+public char[] CONST_GLOBAL_ARRAY;

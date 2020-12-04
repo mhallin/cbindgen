@@ -11,29 +11,29 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   public const int64_t CONSTANT_I64 = 216;
 }
 
-public partial class Functions {
+public partial class Library {
   public const float CONSTANT_FLOAT32 = 312.292f;
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t DELIMITER = ':';
 }
 
-public partial class Functions {
+public partial class Library {
   public const uint32_t LEFTCURLY = '{';
 }
 
 public struct Foo {
   public int32_t x;
 };
-public partial class Functions {
+public partial class Library {
   public const int64_t Foo_CONSTANT_I64_BODY = 216;
 }
 
-public partial class Functions {
+public partial class Library {
   public static readonly Foo SomeFoo = new Foo {  x = 99 };
 }

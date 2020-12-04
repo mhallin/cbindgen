@@ -30,7 +30,7 @@ public struct E {
   [FieldOffset(0)] public U_Body u;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(A _a, E _e);
 }

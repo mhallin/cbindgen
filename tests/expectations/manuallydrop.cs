@@ -40,12 +40,12 @@ public struct MyStruct {
   public Point point;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref Foo a, ref MyStruct with_manual_drop);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void take(Point with_manual_drop);
 }

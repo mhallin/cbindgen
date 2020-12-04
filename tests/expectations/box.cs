@@ -35,17 +35,17 @@ public struct MyStruct {
   public ref int32_t number;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref Foo a, ref MyStruct with_box);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void drop_box(ref int32_t x);
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void drop_box_opt(ref int32_t x);
 }

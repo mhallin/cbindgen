@@ -11,7 +11,7 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   public const int32_t EXT_CONST = 0;
 }
 
@@ -19,7 +19,7 @@ public struct ExtType {
   public uint32_t data;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void consume_ext(ExtType _ext);
 }

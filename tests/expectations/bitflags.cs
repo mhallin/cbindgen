@@ -22,31 +22,31 @@ public struct AlignFlags {
 /*
  'auto'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly AlignFlags AlignFlags_AUTO = new AlignFlags {  bits = (uint8_t)0 };
 }
 /*
  'normal'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly AlignFlags AlignFlags_NORMAL = new AlignFlags {  bits = (uint8_t)1 };
 }
 /*
  'start'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly AlignFlags AlignFlags_START = new AlignFlags {  bits = (uint8_t)(1 << 1) };
 }
 /*
  'end'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly AlignFlags AlignFlags_END = new AlignFlags {  bits = (uint8_t)(1 << 2) };
 }
 /*
  'flex-start'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly AlignFlags AlignFlags_FLEX_START = new AlignFlags {  bits = (uint8_t)(1 << 3) };
 }
 
@@ -56,11 +56,11 @@ public struct DebugFlags {
 /*
  Flag with the topmost bit set of the u32
  */
-public partial class Functions {
+public partial class Library {
   public static readonly DebugFlags DebugFlags_BIGGEST_ALLOWED = new DebugFlags {  bits = (uint32_t)(1 << 31) };
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(AlignFlags flags, DebugFlags bigger_flags);
 }

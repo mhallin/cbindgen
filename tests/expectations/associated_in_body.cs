@@ -22,35 +22,35 @@ public struct StyleAlignFlags {
 /*
  'auto'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly StyleAlignFlags StyleAlignFlags_AUTO = new StyleAlignFlags {  bits = (uint8_t)0 };
 }
 /*
  'normal'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly StyleAlignFlags StyleAlignFlags_NORMAL = new StyleAlignFlags {  bits = (uint8_t)1 };
 }
 /*
  'start'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly StyleAlignFlags StyleAlignFlags_START = new StyleAlignFlags {  bits = (uint8_t)(1 << 1) };
 }
 /*
  'end'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly StyleAlignFlags StyleAlignFlags_END = new StyleAlignFlags {  bits = (uint8_t)(1 << 2) };
 }
 /*
  'flex-start'
  */
-public partial class Functions {
+public partial class Library {
   public static readonly StyleAlignFlags StyleAlignFlags_FLEX_START = new StyleAlignFlags {  bits = (uint8_t)(1 << 3) };
 }
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(StyleAlignFlags flags);
 }

@@ -21,7 +21,7 @@ public struct MyStruct {
   public int32_t number;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref Foo a, ref MyStruct with_cell);
 }

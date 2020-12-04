@@ -11,7 +11,7 @@ using int64_t = System.Int64;
 using intptr_t = System.IntPtr;
 using uintptr_t = System.UIntPtr;
 
-public partial class Functions {
+public partial class Library {
   public const int8_t FOUR = 4;
 }
 
@@ -25,7 +25,7 @@ public enum E: int8_t {
   H = (int8_t)false,
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(ref E _0);
 }

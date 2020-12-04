@@ -15,7 +15,7 @@ public struct ExtType {
   public uint32_t data;
 };
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void consume_ext(ExtType _ext);
 }

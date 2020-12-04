@@ -17,7 +17,7 @@ public struct Foo_____u8 {
 
 using Boo = Foo_____u8;
 
-public partial class Functions {
+public partial class Library {
   [DllImport("bindgen.dll")]
   public static extern void root(Boo x);
 }
