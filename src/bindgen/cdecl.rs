@@ -217,13 +217,13 @@ impl CDecl {
                 out.write("public ");
             }
 
-            let is_void_ptr = self.type_name == "void"
-                && self
-                    .declarators
-                    .iter()
-                    .any(|d| matches!(d, CDeclarator::Ptr{..}));
+            let is_ptr = self
+                .declarators
+                .iter()
+                .any(|d| matches!(d, CDeclarator::Ptr{..}));
+            let is_void_ptr = self.type_name == "void" && is_ptr;
 
-            if is_void_ptr {
+            if is_void_ptr || (is_ptr && self.is_struct_field) {
                 out.write("IntPtr");
             } else {
                 for declarator in self.declarators.iter() {
@@ -335,11 +335,22 @@ impl CDecl {
                             }
 
                             // Convert &Option<String> to Option<&str>
-                            let arg_ident = arg_ident.as_ref().map(|x| x.as_ref());
+                            let arg_ident: Option<&str> = arg_ident.as_ref().map(|x| x.as_ref());
 
-                            arg_ty.write(out, arg_ident, config);
-                            if arg_ident.is_none() && config.language == Language::Csharp {
-                                write!(out, " _{}", i);
+                            if config.language == Language::Csharp && arg_ty.is_func() {
+                                write!(
+                                    out,
+                                    "{fn_name}__{arg_name} {arg_name}",
+                                    fn_name = ident.unwrap_or_else(|| ""),
+                                    arg_name = &arg_ident
+                                        .map(|s| s.to_string())
+                                        .unwrap_or_else(|| format!("_{}", i))
+                                );
+                            } else {
+                                arg_ty.write(out, arg_ident, config);
+                                if arg_ident.is_none() && config.language == Language::Csharp {
+                                    write!(out, " _{}", i);
+                                }
                             }
                         }
                         out.pop_tab();
@@ -350,11 +361,22 @@ impl CDecl {
                             }
 
                             // Convert &Option<String> to Option<&str>
-                            let arg_ident = arg_ident.as_ref().map(|x| x.as_ref());
+                            let arg_ident: Option<&str> = arg_ident.as_ref().map(|x| x.as_ref());
 
-                            arg_ty.write(out, arg_ident, config);
-                            if arg_ident.is_none() && config.language == Language::Csharp {
-                                write!(out, " _{}", i);
+                            if config.language == Language::Csharp && arg_ty.is_func() {
+                                write!(
+                                    out,
+                                    "{fn_name}__{arg_name} {arg_name}",
+                                    fn_name = ident.unwrap_or_else(|| ""),
+                                    arg_name = &arg_ident
+                                        .map(|s| s.to_string())
+                                        .unwrap_or_else(|| format!("_{}", i))
+                                );
+                            } else {
+                                arg_ty.write(out, arg_ident, config);
+                                if arg_ident.is_none() && config.language == Language::Csharp {
+                                    write!(out, " _{}", i);
+                                }
                             }
                         }
                     }
@@ -365,6 +387,12 @@ impl CDecl {
             }
         }
     }
+
+    fn is_func(&self) -> bool {
+        self.declarators
+            .iter()
+            .any(|decl| matches!(decl, CDeclarator::Func(_, _)))
+    }
 }
 
 pub fn write_func<F: Write>(
@@ -373,11 +401,26 @@ pub fn write_func<F: Write>(
     layout_vertical: bool,
     config: &Config,
 ) {
-    CDecl::from_func(f, layout_vertical, config).write(out, Some(f.path().name()), config);
+    let rename_ident;
+
+    let ident = match f.annotations.atom("rename") {
+        Some(Some(rename)) if config.language == Language::Csharp => {
+            rename_ident = rename;
+            rename_ident.as_str()
+        }
+        _ => f.path().name(),
+    };
+    CDecl::from_func(f, layout_vertical, config).write(out, Some(ident), config);
 }
 
 pub fn write_field<F: Write>(out: &mut SourceWriter<F>, t: &Type, ident: &str, config: &Config) {
-    CDecl::from_type(t, config).is_field().write(out, Some(ident), config);
+    CDecl::from_type(t, config)
+        .is_field()
+        .write(out, Some(ident), config);
+}
+
+pub fn write_arg<F: Write>(out: &mut SourceWriter<F>, t: &Type, ident: &str, config: &Config) {
+    CDecl::from_type(t, config).write(out, Some(ident), config);
 }
 
 pub fn write_type<F: Write>(out: &mut SourceWriter<F>, t: &Type, config: &Config) {

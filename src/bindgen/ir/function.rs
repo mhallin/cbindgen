@@ -231,6 +231,50 @@ impl Function {
             }
         }
     }
+
+    fn write_delegate_types<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
+        let rename_ident;
+        let self_name = match self.annotations.atom("rename") {
+            Some(Some(rename)) if config.language == Language::Csharp => {
+                rename_ident = rename;
+                rename_ident.as_str()
+            }
+            _ => self.path().name(),
+        };
+        for (i, arg) in self.args.iter().enumerate() {
+            match &arg.ty {
+                Type::FuncPtr(return_type, arg_tys) => {
+                    out.write("[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
+                    out.new_line();
+                    out.write("public delegate ");
+                    cdecl::write_type(out, return_type, config);
+                    write!(
+                        out,
+                        " {}__{}(",
+                        self_name,
+                        arg.name.clone().unwrap_or_else(|| format!("{}", i))
+                    );
+
+                    for (arg_i, (arg_name, arg_ty)) in arg_tys.iter().enumerate() {
+                        if arg_i > 0 {
+                            out.write(", ");
+                        }
+                        cdecl::write_arg(
+                            out,
+                            arg_ty,
+                            &arg_name.clone().unwrap_or_else(|| format!("_{}", arg_i)),
+                            config,
+                        );
+                    }
+
+                    out.write(");");
+                    out.new_line();
+                    out.new_line();
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 impl Source for Function {
@@ -245,7 +289,16 @@ impl Source for Function {
             func.documentation.write(config, out);
 
             if config.language == Language::Csharp {
-                write!(out, "[DllImport({})]", config.csharp.dll_name);
+                if let Some(Some(_)) = func.annotations.atom("rename") {
+                    write!(
+                        out,
+                        "[DllImport({}, EntryPoint={:?})]",
+                        config.csharp.dll_name,
+                        func.path.name()
+                    );
+                } else {
+                    write!(out, "[DllImport({})]", config.csharp.dll_name);
+                }
                 out.new_line();
                 out.write("public static ");
             }
@@ -298,7 +351,16 @@ impl Source for Function {
             func.documentation.write(config, out);
 
             if config.language == Language::Csharp {
-                write!(out, "[DllImport({})]", config.csharp.dll_name);
+                if let Some(Some(_)) = func.annotations.atom("rename") {
+                    write!(
+                        out,
+                        "[DllImport({}, EntryPoint={:?})]",
+                        config.csharp.dll_name,
+                        func.path.name()
+                    );
+                } else {
+                    write!(out, "[DllImport({})]", config.csharp.dll_name);
+                }
                 out.new_line();
                 out.write("public static ");
             }
@@ -345,8 +407,14 @@ impl Source for Function {
         let option_1 = out.measure(|out| write_1(self, config, out));
 
         if config.language == Language::Csharp {
-            write!(out, "public partial class {}", config.csharp.toplevel_class_name);
+            write!(
+                out,
+                "public partial class {}",
+                config.csharp.toplevel_class_name(&self.annotations)
+            );
             out.open_brace();
+
+            self.write_delegate_types(config, out);
         }
 
         if (config.function.args == Layout::Auto && option_1 <= config.line_length)

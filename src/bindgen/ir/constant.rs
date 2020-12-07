@@ -609,7 +609,7 @@ impl Constant {
                 write!(
                     out,
                     "public partial class {}",
-                    config.csharp.toplevel_class_name
+                    config.csharp.toplevel_class_name(&self.annotations)
                 );
                 out.open_brace();
 

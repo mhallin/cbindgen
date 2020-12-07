@@ -873,6 +873,16 @@ pub struct CsharpConfig {
     pub dll_name: String,
 }
 
+impl CsharpConfig {
+    pub(crate) fn toplevel_class_name(&self, annotations: &AnnotationSet) -> String {
+        if let Some(Some(toplevel_class_name)) = annotations.atom("class-name") {
+            toplevel_class_name
+        } else {
+            self.toplevel_class_name.clone()
+        }
+    }
+}
+
 /// A collection of settings to customize the generated bindings.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -959,7 +969,7 @@ pub struct Config {
     /// Configuration options specific to Cython.
     pub cython: CythonConfig,
     /// Configuration options specific to C#
-    pub csharp: CsharpConfig
+    pub csharp: CsharpConfig,
 }
 
 impl Default for Config {

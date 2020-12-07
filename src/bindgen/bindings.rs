@@ -333,7 +333,7 @@ impl Bindings {
                     out.new_line();
                 }
             }
-            
+
             if self.config.language == Language::Csharp {
                 if let Some(using_namespaces) = &self.config.using_namespaces {
                     for namespace in using_namespaces {
@@ -471,14 +471,17 @@ impl Bindings {
         for namespace in namespaces {
             out.new_line();
             match op {
-                NamespaceOperation::Open => write!(out, "namespace {} {{", namespace),
-                NamespaceOperation::Close => write!(out, "}} // namespace {}", namespace),
-            }
-            if self.config.language == Language::Csharp {
-                if op == NamespaceOperation::Open {
-                    out.push_tab();
-                } else {
-                    out.pop_tab();
+                NamespaceOperation::Open => {
+                    write!(out, "namespace {} {{", namespace);
+                    if self.config.language == Language::Csharp {
+                        out.push_tab();
+                    }
+                }
+                NamespaceOperation::Close => {
+                    if self.config.language == Language::Csharp {
+                        out.pop_tab();
+                    }
+                    write!(out, "}} // namespace {}", namespace)
                 }
             }
         }
