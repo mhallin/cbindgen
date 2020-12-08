@@ -76,16 +76,27 @@ impl Source for Documentation {
             _ => (),
         }
 
+        if style == DocumentationStyle::CSharp {
+            out.write("/// <summary>");
+            out.new_line();
+        }
+
         for line in &self.doc_comment {
             match style {
                 DocumentationStyle::C => out.write(""),
                 DocumentationStyle::Doxy => out.write(" *"),
                 DocumentationStyle::C99 => out.write("//"),
                 DocumentationStyle::Cxx => out.write("///"),
+                DocumentationStyle::CSharp => out.write("///"),
                 DocumentationStyle::Auto => unreachable!(), // Auto case should always be covered
             }
 
             write!(out, "{}", line);
+            out.new_line();
+        }
+
+        if style == DocumentationStyle::CSharp {
+            out.write("/// </summary>");
             out.new_line();
         }
 

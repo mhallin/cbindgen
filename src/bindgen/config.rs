@@ -175,6 +175,7 @@ pub enum DocumentationStyle {
     C99,
     Doxy,
     Cxx,
+    CSharp,
     Auto,
 }
 
@@ -188,6 +189,7 @@ impl FromStr for DocumentationStyle {
             "cxx" => Ok(DocumentationStyle::Cxx),
             "c++" => Ok(DocumentationStyle::Cxx),
             "doxy" => Ok(DocumentationStyle::Doxy),
+            "csharp" => Ok(DocumentationStyle::CSharp),
             "auto" => Ok(DocumentationStyle::Auto),
             _ => Err(format!("Unrecognized documentation style: '{}'.", s)),
         }
