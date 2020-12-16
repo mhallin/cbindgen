@@ -204,7 +204,7 @@ impl CDecl {
             }) {
                 write!(
                     out,
-                    "[MarshalAs(UnmanagedType.ByValArray, SizeConst={})]",
+                    "[MarshalAs(UnmanagedType.ByValArray, SizeConst=Library.{})]",
                     array_size
                 );
                 out.new_line();

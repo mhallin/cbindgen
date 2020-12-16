@@ -214,8 +214,15 @@ impl Source for Typedef {
                     .write(config, out);
             }
             Language::Csharp => {
-                write!(out, "using {} = ", self.export_name());
+                write!(out, "public struct {} {{", self.export_name());
+                out.new_line();
+                out.push_tab();
+                write!(out, "public ");
                 self.aliased.write(config, out);
+                write!(out, " _0;");
+                out.pop_tab();
+                out.new_line();
+                write!(out, "}}");
             }
         }
 

@@ -458,6 +458,13 @@ impl Source for Struct {
         }
 
         if config.language == Language::Csharp {
+            if let Some(attributes) = self.annotations.list("attributes") {
+                for attribute in attributes {
+                    write!(out, "{}", attribute);
+                    out.new_line();
+                }
+            }
+
             out.write("public ");
         }
 

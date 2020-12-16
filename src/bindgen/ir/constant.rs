@@ -617,7 +617,13 @@ impl Constant {
                     Literal::Struct { .. } => out.write("public static readonly "),
                     _ => out.write("public const "),
                 }
-                self.ty.write(config, out);
+
+                match self.annotations.atom("csharp-type") {
+                    Some(Some(csharp_type)) if config.language == Language::Csharp => {
+                        write!(out, "{}", csharp_type)
+                    }
+                    _ => self.ty.write(config, out),
+                }
                 write!(out, " {} = ", name);
                 value.write(config, out);
                 write!(out, ";");

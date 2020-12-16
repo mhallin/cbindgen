@@ -277,6 +277,16 @@ impl Bindings {
 
         self.write_headers(&mut out);
 
+        if self.config.language == Language::Csharp {
+            if let Some(using_namespaces) = &self.config.using_namespaces {
+                for namespace in using_namespaces {
+                    out.new_line();
+                    write!(out, "using {};", namespace);
+                }
+                out.new_line();
+            }
+        }
+
         self.open_namespaces(&mut out);
 
         for constant in &self.constants {
@@ -329,16 +339,6 @@ impl Bindings {
                     for namespace in using_namespaces {
                         out.new_line();
                         write!(out, "using namespace {};", namespace);
-                    }
-                    out.new_line();
-                }
-            }
-
-            if self.config.language == Language::Csharp {
-                if let Some(using_namespaces) = &self.config.using_namespaces {
-                    for namespace in using_namespaces {
-                        out.new_line();
-                        write!(out, "using {};", namespace);
                     }
                     out.new_line();
                 }
