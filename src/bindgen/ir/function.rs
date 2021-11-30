@@ -25,6 +25,7 @@ pub struct FunctionArgument {
     pub name: Option<String>,
     pub ty: Type,
     pub array_length: Option<String>,
+    pub is_out_arg: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -185,6 +186,7 @@ impl Function {
                         name,
                         ty: arg.ty,
                         array_length: None,
+                        is_out_arg: false,
                     }
                 })
                 .collect()
@@ -228,6 +230,24 @@ impl Function {
                     None => continue,
                 };
                 arg.array_length = ptrs_as_arrays.get(name).cloned();
+            }
+        }
+
+        if let Some(tuples) = self.annotations.list("out-args") {
+            for arg in &mut self.args {
+                match arg.ty {
+                    Type::Ptr { .. } => {}
+                    _ => continue,
+                }
+                
+                let name = match &arg.name {
+                    Some(name) => name,
+                    None => continue,
+                };
+
+                if tuples.iter().any(|n| n == name) {
+                    arg.is_out_arg = true;
+                }
             }
         }
     }
@@ -477,12 +497,14 @@ impl SynFnArgHelpers for syn::FnArg {
                     name,
                     ty,
                     array_length: None,
+                    is_out_arg: false,
                 }))
             }
             syn::FnArg::Receiver(ref receiver) => Ok(Some(FunctionArgument {
                 name: Some("self".to_string()),
                 ty: gen_self_type(receiver),
                 array_length: None,
+                is_out_arg: false,
             })),
         }
     }

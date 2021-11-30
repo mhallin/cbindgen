@@ -39,6 +39,7 @@ struct CDecl {
     declarators: Vec<CDeclarator>,
     type_ctype: Option<DeclarationType>,
     is_struct_field: bool,
+    is_out_arg: bool,
 }
 
 impl CDecl {
@@ -50,6 +51,7 @@ impl CDecl {
             declarators: Vec::new(),
             type_ctype: None,
             is_struct_field: false,
+            is_out_arg: false,
         }
     }
 
@@ -59,11 +61,20 @@ impl CDecl {
         cdecl
     }
 
-    fn from_func_arg(t: &Type, array_length: Option<&str>, config: &Config) -> CDecl {
+    fn from_func_arg(
+        t: &Type,
+        array_length: Option<&str>,
+        is_out_arg: bool,
+        config: &Config,
+    ) -> CDecl {
         let mut cdecl = CDecl::new();
         let length = match array_length {
             Some(l) => l,
-            None => return CDecl::from_type(t, config),
+            None => {
+                cdecl = CDecl::from_type(t, config);
+                cdecl.is_out_arg = is_out_arg;
+                return cdecl;
+            }
         };
         let (ty, is_const) = match t {
             Type::Ptr { ty, is_const, .. } => (ty, is_const),
@@ -74,6 +85,7 @@ impl CDecl {
         };
         let ptr_as_array = Type::Array(ty.clone(), ArrayLength::Value(length.to_string()));
         cdecl.build_type(&ptr_as_array, *is_const, config);
+        cdecl.is_out_arg = is_out_arg;
         cdecl
     }
 
@@ -95,7 +107,12 @@ impl CDecl {
             .map(|arg| {
                 (
                     arg.name.clone(),
-                    CDecl::from_func_arg(&arg.ty, arg.array_length.as_deref(), config),
+                    CDecl::from_func_arg(
+                        &arg.ty,
+                        arg.array_length.as_deref(),
+                        arg.is_out_arg,
+                        config,
+                    ),
                 )
             })
             .collect();
@@ -220,7 +237,7 @@ impl CDecl {
             let is_ptr = self
                 .declarators
                 .iter()
-                .any(|d| matches!(d, CDeclarator::Ptr{..}));
+                .any(|d| matches!(d, CDeclarator::Ptr { .. }));
             let is_void_ptr = self.type_name == "void" && is_ptr;
 
             if is_void_ptr || (is_ptr && self.is_struct_field) {
@@ -228,7 +245,11 @@ impl CDecl {
             } else {
                 for declarator in self.declarators.iter() {
                     if let CDeclarator::Ptr { .. } = declarator {
-                        out.write("ref ");
+                        if self.is_out_arg {
+                            out.write("out ");
+                        } else {
+                            out.write("ref ");
+                        }
                     }
                 }
                 write!(out, "{}", self.type_name);
