@@ -27,6 +27,14 @@ pub enum VariantBody {
         name: String,
         /// The struct with all the items.
         body: Struct,
+        /// A separate named struct is not created for this variant,
+        /// an unnamed struct is inlined at the point of use instead.
+        /// This is a reasonable thing to do only for tuple variants with a single field.
+        inline: bool,
+        /// Generated cast methods return the variant's only field instead of the variant itself.
+        /// For backward compatibility casts are inlined in a slightly
+        /// larger set of cases than whole variants.
+        inline_casts: bool,
     },
 }
 
@@ -57,9 +65,16 @@ impl VariantBody {
     ) -> Self {
         match *self {
             Self::Empty(ref annos) => Self::Empty(annos.clone()),
-            Self::Body { ref name, ref body } => Self::Body {
+            Self::Body {
+                ref name,
+                ref body,
+                inline,
+                inline_casts,
+            } => Self::Body {
                 name: name.clone(),
                 body: body.specialize(generic_values, mappings, config),
+                inline,
+                inline_casts,
             },
         }
     }
@@ -83,6 +98,7 @@ impl EnumVariant {
         mod_cfg: Option<&Cfg>,
         self_path: &Path,
         enum_annotations: &AnnotationSet,
+        config: &Config,
     ) -> Result<Self, String> {
         let discriminant = match variant.discriminant {
             Some((_, ref expr)) => Some(Literal::load(expr)?),
@@ -93,12 +109,13 @@ impl EnumVariant {
             inline_tag_field: bool,
             fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
             self_path: &Path,
+            inline_name: Option<&str>,
         ) -> Result<Vec<Field>, String> {
             let mut res = Vec::new();
 
             if inline_tag_field {
                 res.push(Field::from_name_and_type(
-                    "tag".to_string(),
+                    inline_name.map_or_else(|| "tag".to_string(), |name| format!("{}_tag", name)),
                     Type::Path(GenericPath::new(Path::new("Tag"), vec![])),
                 ));
             }
@@ -107,11 +124,15 @@ impl EnumVariant {
                 if let Some(mut ty) = Type::load(&field.ty)? {
                     ty.replace_self_with(self_path);
                     res.push(Field {
-                        name: match field.ident {
-                            Some(ref ident) => ident.to_string(),
-                            None => i.to_string(),
-                        },
+                        name: inline_name.map_or_else(
+                            || match field.ident {
+                                Some(ref ident) => ident.to_string(),
+                                None => i.to_string(),
+                            },
+                            |name| name.to_string(),
+                        ),
                         ty,
+                        cfg: Cfg::load(&field.attrs),
                         annotations: AnnotationSet::load(&field.attrs)?,
                         documentation: Documentation::load(&field.attrs),
                     });
@@ -134,20 +155,21 @@ impl EnumVariant {
                     .apply(&variant.ident.to_string(), IdentifierType::StructMember)
                     .into_owned();
                 VariantBody::Body {
-                    name,
                     body: Struct::new(
                         path,
                         generic_params,
-                        parse_fields(inline_tag_field, &fields.named, self_path)?,
+                        parse_fields(inline_tag_field, &fields.named, self_path, None)?,
                         inline_tag_field,
                         true,
                         None,
-                        false,
                         false,
                         None,
                         annotations,
                         Documentation::none(),
                     ),
+                    name,
+                    inline: false,
+                    inline_casts: false,
                 }
             }
             syn::Fields::Unnamed(ref fields) => {
@@ -155,21 +177,30 @@ impl EnumVariant {
                 let name = RenameRule::SnakeCase
                     .apply(&variant.ident.to_string(), IdentifierType::StructMember)
                     .into_owned();
+                let inline_casts = fields.unnamed.len() == 1;
+                // In C++ types with destructors cannot be put into unnamed structs like the
+                // inlining requires, and it's hard to detect such types.
+                // Besides that for C++ we generate casts/getters that can be used instead of
+                // direct field accesses and also have a benefit of being checked.
+                // As a result we don't currently inline variant definitions in C++ mode at all.
+                let inline = inline_casts && config.language != Language::Cxx;
+                let inline_name = if inline { Some(&*name) } else { None };
                 VariantBody::Body {
-                    name,
                     body: Struct::new(
                         path,
                         generic_params,
-                        parse_fields(inline_tag_field, &fields.unnamed, self_path)?,
+                        parse_fields(inline_tag_field, &fields.unnamed, self_path, inline_name)?,
                         inline_tag_field,
                         true,
                         None,
                         false,
-                        true,
                         None,
                         annotations,
                         Documentation::none(),
                     ),
+                    name,
+                    inline,
+                    inline_casts,
                 }
             }
         };
@@ -347,6 +378,7 @@ impl Enum {
                 mod_cfg,
                 &path,
                 &annotations,
+                config,
             )?;
             has_data = has_data || !variant.body.is_empty();
             variants.push(variant);
@@ -479,10 +511,13 @@ impl Item for Enum {
 
         for variant in &mut self.variants {
             reserved::escape(&mut variant.export_name);
-
+            if let Some(discriminant) = &mut variant.discriminant {
+                discriminant.rename_for_config(config);
+            }
             if let VariantBody::Body {
                 ref mut name,
                 ref mut body,
+                ..
             } = variant.body
             {
                 body.rename_for_config(config);
@@ -517,9 +552,16 @@ impl Item for Enum {
                         variant.discriminant.clone(),
                         match variant.body {
                             VariantBody::Empty(..) => variant.body.clone(),
-                            VariantBody::Body { ref name, ref body } => VariantBody::Body {
+                            VariantBody::Body {
+                                ref name,
+                                ref body,
+                                inline,
+                                inline_casts,
+                            } => VariantBody::Body {
                                 name: r.apply(&name, IdentifierType::StructMember).into_owned(),
                                 body: body.clone(),
+                                inline,
+                                inline_casts,
                             },
                         },
                         variant.cfg.clone(),
@@ -614,7 +656,7 @@ impl Source for Enum {
         }
 
         // Emit the tag enum and everything related to it.
-        self.write_tag_enum(config, out, size, has_data, inline_tag_field, tag_name);
+        self.write_tag_enum(config, out, size, has_data, tag_name);
 
         // If the enum has data, we need to emit structs for the variants and gather them together.
         if has_data {
@@ -653,7 +695,7 @@ impl Source for Enum {
             }
 
             // Emit convenience methods for the struct or enum for the data.
-            self.write_derived_functions_data(config, out, inline_tag_field, tag_name);
+            self.write_derived_functions_data(config, out, tag_name);
 
             // Emit the post_body section, if relevant.
             if let Some(body) = config.export.post_body(&self.path) {
@@ -684,7 +726,6 @@ impl Enum {
         out: &mut SourceWriter<F>,
         size: Option<&str>,
         has_data: bool,
-        inline_tag_field: bool,
         tag_name: &str,
     ) {
         // Open the tag enum.
@@ -789,7 +830,7 @@ impl Enum {
         }
 
         // Emit convenience methods for the tag enum.
-        self.write_derived_functions_enum(config, out, has_data, inline_tag_field, tag_name);
+        self.write_derived_functions_enum(config, out, has_data, tag_name);
     }
 
     /// The code here mirrors the beginning of `Struct::write` and `Union::write`.
@@ -836,7 +877,12 @@ impl Enum {
     /// Emit struct definitions for variants having data.
     fn write_variant_defs<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
         for variant in &self.variants {
-            if let VariantBody::Body { ref body, .. } = variant.body {
+            if let VariantBody::Body {
+                ref body,
+                inline: false,
+                ..
+            } = variant.body
+            {
                 out.new_line();
                 out.new_line();
                 let condition = variant.cfg.to_condition(config);
@@ -892,7 +938,10 @@ impl Enum {
     fn write_variant_fields<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
         let mut first = true;
         for variant in &self.variants {
-            if let VariantBody::Body { name, body } = &variant.body {
+            if let VariantBody::Body {
+                name, body, inline, ..
+            } = &variant.body
+            {
                 if !first {
                     out.new_line();
                 }
@@ -905,7 +954,21 @@ impl Enum {
                 if config.language == Language::Csharp {
                     write!(out, "[FieldOffset(0)] public ");
                 }
-                if config.style.generate_typedef() || config.language == Language::Cython {
+                if *inline {
+                    // Write definition of an inlined variant with data.
+                    // Cython extern declarations don't manage layouts, layouts are defined entierly
+                    // by the corresponding C code. So we can inline the unnamed struct and get the
+                    // same observable result. Moreother we have to do it because Cython doesn't
+                    // support unnamed structs.
+                    if config.language != Language::Cython {
+                        out.write("struct");
+                        out.open_brace();
+                    }
+                    out.write_vertical_source_list(&body.fields, ListType::Cap(";"));
+                    if config.language != Language::Cython {
+                        out.close_brace(true);
+                    }
+                } else if config.style.generate_typedef() || config.language == Language::Cython {
                     write!(out, "{} {};", body.export_name(), name);
                 } else {
                     write!(out, "struct {} {};", body.export_name(), name);
@@ -923,7 +986,6 @@ impl Enum {
         config: &Config,
         out: &mut SourceWriter<F>,
         has_data: bool,
-        inline_tag_field: bool,
         tag_name: &str,
     ) {
         if config.language != Language::Cxx {
@@ -1031,14 +1093,17 @@ impl Enum {
                     .iter()
                     .map(|x| {
                         let tag_str = format!("\"{}\"", x.export_name);
-                        if let VariantBody::Body { ref name, .. } = x.body {
+                        if let VariantBody::Body {
+                            ref name, ref body, ..
+                        } = x.body
+                        {
                             format!(
                                 "case {}::{}: {} << {}{}{}.{}; break;",
                                 tag_name,
                                 x.export_name,
                                 stream,
-                                if inline_tag_field { "" } else { &tag_str },
-                                if inline_tag_field { "" } else { " << " },
+                                if body.has_tag_field { "" } else { &tag_str },
+                                if body.has_tag_field { "" } else { " << " },
                                 instance,
                                 name,
                             )
@@ -1065,14 +1130,11 @@ impl Enum {
         &self,
         config: &Config,
         out: &mut SourceWriter<F>,
-        inline_tag_field: bool,
         tag_name: &str,
     ) {
         if config.language != Language::Cxx {
             return;
         }
-
-        let skip_fields = if inline_tag_field { 1 } else { 0 };
 
         if config.enumeration.derive_helper_methods(&self.annotations) {
             for variant in &self.variants {
@@ -1107,6 +1169,7 @@ impl Enum {
                 write!(out, "static {} {}(", self.export_name, variant.export_name);
 
                 if let VariantBody::Body { ref body, .. } = variant.body {
+                    let skip_fields = if body.has_tag_field { 1 } else { 0 };
                     let vec: Vec<_> = body
                         .fields
                         .iter()
@@ -1130,8 +1193,10 @@ impl Enum {
                 if let VariantBody::Body {
                     name: ref variant_name,
                     ref body,
+                    ..
                 } = variant.body
                 {
+                    let skip_fields = if body.has_tag_field { 1 } else { 0 };
                     for field in body.fields.iter().skip(skip_fields) {
                         out.new_line();
                         match field.ty {
@@ -1176,11 +1241,17 @@ impl Enum {
                 };
 
                 let mut derive_casts = |const_casts: bool| {
-                    let (member_name, body) = match variant.body {
-                        VariantBody::Body { ref name, ref body } => (name, body),
+                    let (member_name, body, inline_casts) = match variant.body {
+                        VariantBody::Body {
+                            ref name,
+                            ref body,
+                            inline_casts,
+                            ..
+                        } => (name, body, inline_casts),
                         VariantBody::Empty(..) => return,
                     };
 
+                    let skip_fields = if body.has_tag_field { 1 } else { 0 };
                     let field_count = body.fields.len() - skip_fields;
                     if field_count == 0 {
                         return;
@@ -1189,14 +1260,13 @@ impl Enum {
                     out.new_line();
                     out.new_line();
 
-                    let dig = field_count == 1 && body.tuple_struct;
                     if const_casts {
                         write_attrs!("const-cast");
                     } else {
                         write_attrs!("mut-cast");
                     }
-                    if dig {
-                        let field = body.fields.get(skip_fields).unwrap();
+                    if inline_casts {
+                        let field = body.fields.last().unwrap();
                         let return_type = field.ty.clone();
                         let return_type = Type::Ptr {
                             ty: Box::new(return_type),
@@ -1218,11 +1288,11 @@ impl Enum {
                     out.open_brace();
                     write!(out, "{}(Is{}());", assert_name, variant.export_name);
                     out.new_line();
-                    if dig {
-                        write!(out, "return {}._0;", member_name);
-                    } else {
-                        write!(out, "return {};", member_name);
+                    write!(out, "return {}", member_name);
+                    if inline_casts {
+                        write!(out, "._0");
                     }
+                    write!(out, ";");
                     out.close_brace(false);
                 };
 
@@ -1346,7 +1416,10 @@ impl Enum {
             out.open_brace();
             let mut exhaustive = true;
             for variant in &self.variants {
-                if let VariantBody::Body { ref name, ref body } = variant.body {
+                if let VariantBody::Body {
+                    ref name, ref body, ..
+                } = variant.body
+                {
                     let condition = variant.cfg.to_condition(config);
                     condition.write_before(config, out);
                     write!(
@@ -1389,7 +1462,10 @@ impl Enum {
             out.open_brace();
             let mut exhaustive = true;
             for variant in &self.variants {
-                if let VariantBody::Body { ref name, ref body } = variant.body {
+                if let VariantBody::Body {
+                    ref name, ref body, ..
+                } = variant.body
+                {
                     let condition = variant.cfg.to_condition(config);
                     condition.write_before(config, out);
                     write!(
