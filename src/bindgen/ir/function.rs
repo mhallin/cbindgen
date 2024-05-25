@@ -12,7 +12,8 @@ use crate::bindgen::config::{Config, Language, Layout};
 use crate::bindgen::declarationtyperesolver::DeclarationTypeResolver;
 use crate::bindgen::dependencies::Dependencies;
 use crate::bindgen::ir::{
-    AnnotationSet, Cfg, ConditionWrite, Documentation, GenericPath, Path, ToCondition, Type,
+    AnnotationSet, Cfg, ConditionWrite, DeprecatedNoteKind, Documentation, GenericPath, Path,
+    ToCondition, Type,
 };
 use crate::bindgen::library::Library;
 use crate::bindgen::monomorph::Monomorphs;
@@ -320,6 +321,12 @@ impl Source for Function {
                         write!(out, "{} ", anno);
                     }
                 }
+                if let Some(note) = func
+                    .annotations
+                    .deprecated_note(config, DeprecatedNoteKind::Function)
+                {
+                    write!(out, "{} ", note);
+                }
             }
             cdecl::write_func(out, func, Layout::Horizontal, config);
 
@@ -377,6 +384,13 @@ impl Source for Function {
                         write!(out, "{}", anno);
                         out.new_line();
                     }
+                }
+                if let Some(note) = func
+                    .annotations
+                    .deprecated_note(config, DeprecatedNoteKind::Function)
+                {
+                    write!(out, "{}", note);
+                    out.new_line();
                 }
             }
             cdecl::write_func(out, func, Layout::Vertical, config);

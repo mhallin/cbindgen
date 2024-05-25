@@ -42,6 +42,7 @@ struct CDecl {
     type_ctype: Option<DeclarationType>,
     is_struct_field: bool,
     is_out_arg: bool,
+    deprecated: Option<String>,
 }
 
 impl CDecl {
@@ -54,6 +55,7 @@ impl CDecl {
             type_ctype: None,
             is_struct_field: false,
             is_out_arg: false,
+            deprecated: None,
         }
     }
 
@@ -123,6 +125,7 @@ impl CDecl {
             layout,
             never_return: f.never_return,
         });
+        self.deprecated = f.annotations.deprecated.clone();
         self.build_type(&f.ret, false, config);
     }
 

@@ -10,9 +10,9 @@ use crate::bindgen::config::{Config, Language};
 use crate::bindgen::declarationtyperesolver::DeclarationTypeResolver;
 use crate::bindgen::dependencies::Dependencies;
 use crate::bindgen::ir::{
-    AnnotationSet, AnnotationValue, Cfg, ConditionWrite, Documentation, Field, GenericArgument,
-    GenericParams, GenericPath, Item, ItemContainer, Literal, Path, Repr, ReprStyle, Struct,
-    ToCondition, Type,
+    AnnotationSet, AnnotationValue, Cfg, ConditionWrite, DeprecatedNoteKind, Documentation, Field,
+    GenericArgument, GenericParams, GenericPath, Item, ItemContainer, Literal, Path, Repr,
+    ReprStyle, Struct, ToCondition, Type,
 };
 use crate::bindgen::library::Library;
 use crate::bindgen::mangle;
@@ -753,7 +753,14 @@ impl Enum {
                 if let Some(prim) = size {
                     // If we need to specify size, then we have no choice but to create a typedef,
                     // so `config.style` is not respected.
-                    write!(out, "enum {}", tag_name);
+                    write!(out, "enum");
+                    if let Some(note) = self
+                        .annotations
+                        .deprecated_note(config, DeprecatedNoteKind::Enum)
+                    {
+                        write!(out, " {}", note);
+                    }
+                    write!(out, " {}", tag_name);
 
                     if config.cpp_compatible_c() {
                         out.new_line();
@@ -769,6 +776,12 @@ impl Enum {
                         out.write("typedef ");
                     }
                     out.write("enum");
+                    if let Some(note) = self
+                        .annotations
+                        .deprecated_note(config, DeprecatedNoteKind::Enum)
+                    {
+                        write!(out, " {}", note);
+                    }
                     if config.style.generate_tag() {
                         write!(out, " {}", tag_name);
                     }
@@ -785,6 +798,13 @@ impl Enum {
                     if let Some(ref anno) = config.enumeration.must_use {
                         write!(out, " {}", anno)
                     }
+                }
+
+                if let Some(note) = self
+                    .annotations
+                    .deprecated_note(config, DeprecatedNoteKind::Enum)
+                {
+                    write!(out, " {}", note);
                 }
 
                 write!(out, " {}", tag_name);
@@ -878,6 +898,13 @@ impl Enum {
             if let Some(ref anno) = config.structure.must_use {
                 write!(out, " {}", anno);
             }
+        }
+
+        if let Some(note) = self
+            .annotations
+            .deprecated_note(config, DeprecatedNoteKind::Struct)
+        {
+            write!(out, " {} ", note);
         }
 
         if config.language != Language::C || config.style.generate_tag() {

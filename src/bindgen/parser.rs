@@ -15,10 +15,10 @@ use crate::bindgen::cargo::{Cargo, PackageRef};
 use crate::bindgen::config::{Config, ParseConfig};
 use crate::bindgen::error::Error;
 use crate::bindgen::ir::{
-    AnnotationSet, Cfg, Constant, Documentation, Enum, Function, GenericParam, GenericParams,
-    ItemMap, OpaqueItem, Path, Static, Struct, Type, Typedef, Union,
+    AnnotationSet, AnnotationValue, Cfg, Constant, Documentation, Enum, Function, GenericParam,
+    GenericParams, ItemMap, OpaqueItem, Path, Static, Struct, Type, Typedef, Union,
 };
-use crate::bindgen::utilities::{SynAbiHelpers, SynAttributeHelpers, SynItemFnHelpers};
+use crate::bindgen::utilities::{SynAbiHelpers, SynAttributeHelpers, SynItemHelpers};
 
 const STD_CRATES: &[&str] = &[
     "std",
@@ -547,7 +547,7 @@ impl Parse {
                     }
                 }
                 syn::Item::Macro(ref item) => {
-                    self.load_builtin_macro(config, crate_name, mod_cfg, item)
+                    self.load_builtin_macro(config, crate_name, mod_cfg, item);
                 }
                 syn::Item::Mod(ref item) => {
                     nested_modules.push(item);
@@ -643,7 +643,6 @@ impl Parse {
             item,
             Some(self_type),
             &item.sig,
-            &item.vis,
             &item.attrs,
         )
     }
@@ -665,7 +664,6 @@ impl Parse {
             item,
             None,
             &item.sig,
-            &item.vis,
             &item.attrs,
         );
     }
@@ -677,10 +675,9 @@ impl Parse {
         binding_crate_name: &str,
         crate_name: &str,
         mod_cfg: Option<&Cfg>,
-        named_symbol: &dyn SynItemFnHelpers,
+        named_symbol: &dyn SynItemHelpers,
         self_type: Option<&Path>,
         sig: &syn::Signature,
-        vis: &syn::Visibility,
         attrs: &[syn::Attribute],
     ) {
         if !config
@@ -707,53 +704,29 @@ impl Parse {
         let is_extern_c = sig.abi.is_omitted() || sig.abi.is_c();
         let exported_name = named_symbol.exported_name();
 
-        if let syn::Visibility::Public(_) = vis {
-            match (is_extern_c, exported_name) {
-                (true, Some(exported_name)) => {
-                    let path = Path::new(exported_name);
-                    match Function::load(path, self_type, sig, false, attrs, mod_cfg) {
-                        Ok(func) => {
-                            info!("Take {}.", loggable_item_name());
-                            self.functions.push(func);
-                        }
-                        Err(msg) => {
-                            error!("Cannot use fn {} ({}).", loggable_item_name(), msg);
-                        }
+        match (is_extern_c, exported_name) {
+            (true, Some(exported_name)) => {
+                let path = Path::new(exported_name);
+                match Function::load(path, self_type, sig, false, attrs, mod_cfg) {
+                    Ok(func) => {
+                        info!("Take {}.", loggable_item_name());
+                        self.functions.push(func);
+                    }
+                    Err(msg) => {
+                        error!("Cannot use fn {} ({}).", loggable_item_name(), msg);
                     }
                 }
-                (true, None) => {
-                    warn!(
-                        "Skipping {} - (not `no_mangle`, and has no `export_name` attribute)",
-                        loggable_item_name()
-                    );
-                }
-                (false, Some(_exported_name)) => {
-                    warn!("Skipping {} - (not `extern \"C\"`", loggable_item_name());
-                }
-                (false, None) => {}
             }
-        } else {
-            match (is_extern_c, exported_name) {
-                (true, Some(..)) => {
-                    warn!(
-                        "Skipping {} - (not `pub` but is `extern \"C\"` and `no_mangle`)",
-                        loggable_item_name()
-                    );
-                }
-                (true, None) => {
-                    warn!(
-                        "Skipping {} - (not `pub` but is `extern \"C\"`)",
-                        loggable_item_name()
-                    );
-                }
-                (false, Some(..)) => {
-                    warn!(
-                        "Skipping {} - (not `pub` but is `no_mangle`)",
-                        loggable_item_name()
-                    );
-                }
-                (false, None) => {}
+            (true, None) => {
+                warn!(
+                    "Skipping {} - (not `no_mangle`, and has no `export_name` attribute)",
+                    loggable_item_name()
+                );
             }
+            (false, Some(_exported_name)) => {
+                warn!("Skipping {} - (not `extern \"C\"`", loggable_item_name());
+            }
+            (false, None) => {}
         }
     }
 
@@ -892,27 +865,18 @@ impl Parse {
             return;
         }
 
-        if let syn::Visibility::Public(_) = item.vis {
-            if item.is_no_mangle() {
-                match Static::load(item, mod_cfg) {
-                    Ok(constant) => {
-                        info!("Take {}::{}.", crate_name, &item.ident);
-
-                        self.globals.try_insert(constant);
-                    }
-                    Err(msg) => {
-                        warn!("Skip {}::{} - ({})", crate_name, &item.ident, msg);
-                    }
+        if let Some(exported_name) = item.exported_name() {
+            let path = Path::new(exported_name);
+            match Static::load(path, item, mod_cfg) {
+                Ok(constant) => {
+                    info!("Take {}::{}.", crate_name, &item.ident);
+                    self.globals.try_insert(constant);
+                }
+                Err(msg) => {
+                    warn!("Skip {}::{} - ({})", crate_name, &item.ident, msg);
                 }
             }
-        }
-
-        // TODO
-        if let syn::Visibility::Public(_) = item.vis {
         } else {
-            warn!("Skip {}::{} - (not `pub`).", crate_name, &item.ident);
-        }
-        if !item.is_no_mangle() {
             warn!("Skip {}::{} - (not `no_mangle`).", crate_name, &item.ident);
         }
     }
@@ -1022,7 +986,7 @@ impl Parse {
         }
 
         let bitflags = match bitflags::parse(item.mac.tokens.clone()) {
-            Ok(b) => b,
+            Ok(bf) => bf,
             Err(e) => {
                 warn!("Failed to parse bitflags invocation: {:?}", e);
                 return;
@@ -1030,10 +994,18 @@ impl Parse {
         };
 
         let (struct_, impl_) = bitflags.expand();
-        self.load_syn_struct(config, crate_name, mod_cfg, &struct_);
-        // We know that the expansion will only reference `struct_`, so it's
-        // fine to just do it here instead of deferring it like we do with the
-        // other calls to this function.
-        self.load_syn_assoc_consts_from_impl(crate_name, mod_cfg, &impl_);
+        if let Some(struct_) = struct_ {
+            self.load_syn_struct(config, crate_name, mod_cfg, &struct_);
+        }
+        if let syn::Type::Path(ref path) = *impl_.self_ty {
+            if let Some(type_name) = path.path.get_ident() {
+                self.structs
+                    .for_items_mut(&Path::new(type_name.unraw().to_string()), |item| {
+                        item.annotations
+                            .add_default("internal-derive-bitflags", AnnotationValue::Bool(true));
+                    });
+            }
+        }
+        self.load_syn_assoc_consts_from_impl(crate_name, mod_cfg, &impl_)
     }
 }
