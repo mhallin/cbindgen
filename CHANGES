@@ -1,3 +1,9 @@
+## 0.24.6
+
+      * Update MSRV to 1.57
+      * Support variadic arguments (`...`) (#805)
+      * Add --depfile option (#820)
+
 ## 0.24.5
 
       * Don't enforce tempfile version.
