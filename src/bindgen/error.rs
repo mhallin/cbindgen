@@ -11,6 +11,7 @@ pub use crate::bindgen::cargo::cargo_toml::Error as CargoTomlError;
 pub use syn::parse::Error as ParseError;
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum Error {
     CargoMetadata(String, CargoMetadataError),
     CargoToml(String, CargoTomlError),
@@ -39,7 +40,7 @@ impl fmt::Display for Error {
             }
             Error::CargoExpand(ref crate_name, ref error) => write!(
                 f,
-                "Parsing crate `{}`: couldn't run `cargo rustc --pretty=expanded`: {:?}",
+                "Parsing crate `{}`: couldn't run `cargo rustc -Zunpretty=expanded`: {:?}",
                 crate_name, error
             ),
             Error::ParseSyntaxError {

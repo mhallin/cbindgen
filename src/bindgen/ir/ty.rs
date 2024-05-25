@@ -398,7 +398,7 @@ impl Type {
             syn::Type::Path(ref path) => {
                 let generic_path = GenericPath::load(&path.path)?;
 
-                if generic_path.name() == "PhantomData" {
+                if generic_path.name() == "PhantomData" || generic_path.name() == "PhantomPinned" {
                     return Ok(None);
                 }
 
@@ -630,7 +630,7 @@ impl Type {
                 is_ref: false,
             }),
             "Cell" => Some(generic.into_owned()),
-            "ManuallyDrop" | "MaybeUninit" if config.language != Language::Cxx => {
+            "ManuallyDrop" | "MaybeUninit" | "Pin" if config.language != Language::Cxx => {
                 Some(generic.into_owned())
             }
             _ => None,
@@ -805,7 +805,7 @@ impl Type {
                 ty.add_monomorphs(library, out);
             }
             Type::Path(ref generic) => {
-                if generic.generics().is_empty() || out.contains(&generic) {
+                if generic.generics().is_empty() || out.contains(generic) {
                     return;
                 }
                 let path = generic.path();
@@ -892,7 +892,7 @@ impl Type {
                     return;
                 }
 
-                if let Some(mangled_path) = monomorphs.mangle_path(&generic_path) {
+                if let Some(mangled_path) = monomorphs.mangle_path(generic_path) {
                     *generic_path = GenericPath::new(mangled_path.clone(), vec![]);
                 } else {
                     warn!(

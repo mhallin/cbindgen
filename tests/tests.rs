@@ -109,10 +109,8 @@ fn compile(
                 if let Ok(extra_flags) = env::var("CXXFLAGS") {
                     command.args(extra_flags.split_whitespace());
                 }
-            } else {
-                if let Ok(extra_flags) = env::var("CFLAGS") {
-                    command.args(extra_flags.split_whitespace());
-                }
+            } else if let Ok(extra_flags) = env::var("CFLAGS") {
+                command.args(extra_flags.split_whitespace());
             }
 
             if let Some(style) = style {
@@ -151,8 +149,9 @@ fn compile(
     }
 }
 
-const SKIP_WARNING_AS_ERROR_SUFFIX: &'static str = ".skip_warning_as_error";
+const SKIP_WARNING_AS_ERROR_SUFFIX: &str = ".skip_warning_as_error";
 
+#[allow(clippy::too_many_arguments)]
 fn run_compile_test(
     cbindgen_path: &'static str,
     name: &'static str,
@@ -206,10 +205,8 @@ fn run_compile_test(
         // We already generated an identical file previously.
         if env::var_os("CBINDGEN_TEST_VERIFY").is_some() {
             assert!(!generated_file.exists());
-        } else {
-            if generated_file.exists() {
-                fs::remove_file(&generated_file).unwrap();
-            }
+        } else if generated_file.exists() {
+            fs::remove_file(&generated_file).unwrap();
         }
     } else {
         if env::var_os("CBINDGEN_TEST_VERIFY").is_some() {
@@ -258,7 +255,7 @@ fn test_file(cbindgen_path: &'static str, name: &'static str, filename: &'static
             run_compile_test(
                 cbindgen_path,
                 name,
-                &test,
+                test,
                 tmp_dir,
                 Language::C,
                 *cpp_compat,
@@ -271,7 +268,7 @@ fn test_file(cbindgen_path: &'static str, name: &'static str, filename: &'static
     run_compile_test(
         cbindgen_path,
         name,
-        &test,
+        test,
         tmp_dir,
         Language::Cxx,
         /* cpp_compat = */ false,
@@ -296,7 +293,7 @@ fn test_file(cbindgen_path: &'static str, name: &'static str, filename: &'static
         run_compile_test(
             cbindgen_path,
             name,
-            &test,
+            test,
             tmp_dir,
             Language::Cython,
             /* cpp_compat = */ false,

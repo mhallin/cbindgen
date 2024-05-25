@@ -372,7 +372,7 @@ impl ExportConfig {
             }
         }
         if let Some(ref prefix) = self.prefix {
-            item_name.insert_str(0, &prefix);
+            item_name.insert_str(0, prefix);
         }
     }
 }
@@ -725,13 +725,13 @@ impl FromStr for Profile {
 
 deserialize_enum_str!(Profile);
 
-/// Settings to apply when running `rustc --pretty=expanded`
+/// Settings to apply when running `rustc -Zunpretty=expanded`
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
 #[serde(default)]
 pub struct ParseExpandConfig {
-    /// The names of crates to parse with `rustc --pretty=expanded`
+    /// The names of crates to parse with `rustc -Zunpretty=expanded`
     pub crates: Vec<String>,
     /// Whether to enable all the features when expanding.
     pub all_features: bool,
@@ -814,10 +814,10 @@ pub struct ParseConfig {
     pub include: Option<Vec<String>>,
     /// The names of crates to not parse
     pub exclude: Vec<String>,
-    /// The configuration options for `rustc --pretty=expanded`
+    /// The configuration options for `rustc -Zunpretty=expanded`
     #[serde(deserialize_with = "retrocomp_parse_expand_config_deserialize")]
     pub expand: ParseExpandConfig,
-    /// Whether to use a new temporary target directory when running `rustc --pretty=expanded`.
+    /// Whether to use a new temporary target directory when running `rustc -Zunpretty=expanded`.
     /// This may be required for some build processes.
     pub clean: bool,
     /// List of crate names which generate consts, statics, and fns. By default
@@ -969,6 +969,41 @@ pub struct Config {
     /// Configuration options for pointers
     #[serde(rename = "ptr")]
     pub pointer: PtrConfig,
+    /// Only download sources for dependencies needed for the target platform.
+    ///
+    /// By default, cbindgen will fetch sources for dependencies used on any platform so that if a
+    /// type is defined in terms of a type from a dependency on another target (probably behind a
+    /// `#[cfg]`), cbindgen will be able to generate the appropriate binding as it can see the
+    /// nested type's definition. However, this makes calling cbindgen slower, as it may have to
+    /// download a number of additional dependencies.
+    ///
+    /// As an example, consider this Cargo.toml:
+    ///
+    /// ```toml
+    /// [target.'cfg(windows)'.dependencies]
+    /// windows = "0.7"
+    /// ```
+    ///
+    /// with this declaration in one of the `.rs` files that cbindgen is asked to generate bindings
+    /// for:
+    ///
+    /// ```rust,ignore
+    /// #[cfg(windows)]
+    /// pub struct Error(windows::ErrorCode);
+    /// ```
+    ///
+    /// With the default value (`false`), cbindgen will download the `windows` dependency even when
+    /// not compiling for Windows, and will thus be able to generate the binding for `Error`
+    /// (behind a `#define`).
+    ///
+    /// If this value is instead to `true`, cbindgen will _not_ download the `windows` dependency
+    /// if it's not compiling for Windows, but will also fail to generate a Windows binding for
+    /// `Error` as it does not know the definition for `ErrorCode`.
+    ///
+    /// The target can be chosen via the `TARGET` environment variable (if used
+    /// via the CLI, when ran from a build script cargo sets this variable
+    /// appropriately).
+    pub only_target_dependencies: bool,
     /// Configuration options specific to Cython.
     pub cython: CythonConfig,
     /// Configuration options specific to C#
@@ -1012,6 +1047,7 @@ impl Default for Config {
             documentation: true,
             documentation_style: DocumentationStyle::Auto,
             pointer: PtrConfig::default(),
+            only_target_dependencies: false,
             cython: CythonConfig::default(),
             csharp: CsharpConfig::default(),
         }

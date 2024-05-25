@@ -154,14 +154,16 @@ impl<'a> Parser<'a> {
                 None => {
                     // This should be an error, but is common enough to just elicit a warning
                     warn!(
-                        "Parsing crate `{}`: can't find lib.rs with `cargo metadata`.",
+                        "Parsing crate `{}`: can't find lib.rs with `cargo metadata`. \
+                        The crate may be available only on a particular platform, \
+                        so consider setting `fetch_all_dependencies` in your cbindgen configuration.",
                         pkg.name
                     );
                 }
             }
         }
 
-        for (dep_pkg, cfg) in self.lib.as_ref().unwrap().dependencies(&pkg) {
+        for (dep_pkg, cfg) in self.lib.as_ref().unwrap().dependencies(pkg) {
             if !self.should_parse_dependency(&dep_pkg.name) {
                 continue;
             }
@@ -298,7 +300,7 @@ impl<'a> Parser<'a> {
         debug_assert_eq!(mod_dir.is_some(), submod_dir.is_some());
         // We process the items first then the nested modules.
         let nested_modules = self.out.load_syn_crate_mod(
-            &self.config,
+            self.config,
             &self.binding_crate_name,
             &pkg.name,
             Cfg::join(&self.cfg_stack).as_ref(),
@@ -706,7 +708,7 @@ impl Parse {
             match (is_extern_c, exported_name) {
                 (true, Some(exported_name)) => {
                     let path = Path::new(exported_name);
-                    match Function::load(path, self_type, &sig, false, &attrs, mod_cfg) {
+                    match Function::load(path, self_type, sig, false, attrs, mod_cfg) {
                         Ok(func) => {
                             info!("Take {}.", loggable_item_name());
                             self.functions.push(func);
@@ -1008,7 +1010,7 @@ impl Parse {
         item: &syn::ItemMacro,
     ) {
         let name = match item.mac.path.segments.last() {
-            Some(ref n) => n.ident.to_string(),
+            Some(n) => n.ident.to_string(),
             None => return,
         };
 

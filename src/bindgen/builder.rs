@@ -115,6 +115,17 @@ impl Builder {
     }
 
     #[allow(unused)]
+    pub fn with_using_namespaces<S: AsRef<str>>(mut self, namespaces: &[S]) -> Builder {
+        self.config.using_namespaces = Some(
+            namespaces
+                .iter()
+                .map(|x| String::from(x.as_ref()))
+                .collect(),
+        );
+        self
+    }
+
+    #[allow(unused)]
     pub fn with_braces(mut self, braces: Braces) -> Builder {
         self.config.braces = braces;
         self
@@ -241,6 +252,12 @@ impl Builder {
     }
 
     #[allow(unused)]
+    pub fn with_only_target_dependencies(mut self, only_target_dependencies: bool) -> Builder {
+        self.config.only_target_dependencies = only_target_dependencies;
+        self
+    }
+
+    #[allow(unused)]
     pub fn with_documentation(mut self, documentation: bool) -> Builder {
         self.config.documentation = documentation;
         self
@@ -341,6 +358,7 @@ impl Builder {
                 binding_lib_name.as_deref(),
                 self.config.parse.parse_deps,
                 self.config.parse.clean,
+                self.config.only_target_dependencies,
                 /* existing_metadata = */ None,
             )?;
 
