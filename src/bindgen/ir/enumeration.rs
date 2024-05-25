@@ -10,8 +10,9 @@ use crate::bindgen::config::{Config, Language};
 use crate::bindgen::declarationtyperesolver::DeclarationTypeResolver;
 use crate::bindgen::dependencies::Dependencies;
 use crate::bindgen::ir::{
-    AnnotationSet, AnnotationValue, Cfg, ConditionWrite, Documentation, Field, GenericParams,
-    GenericPath, Item, ItemContainer, Literal, Path, Repr, ReprStyle, Struct, ToCondition, Type,
+    AnnotationSet, AnnotationValue, Cfg, ConditionWrite, Documentation, Field, GenericArgument,
+    GenericParams, GenericPath, Item, ItemContainer, Literal, Path, Repr, ReprStyle, Struct,
+    ToCondition, Type,
 };
 use crate::bindgen::library::Library;
 use crate::bindgen::mangle;
@@ -61,8 +62,8 @@ impl VariantBody {
 
     fn specialize(
         &self,
-        generic_values: &[Type],
-        mappings: &[(&Path, &Type)],
+        generic_values: &[GenericArgument],
+        mappings: &[(&Path, &GenericArgument)],
         config: &Config,
     ) -> Self {
         match *self {
@@ -265,8 +266,8 @@ impl EnumVariant {
 
     fn specialize(
         &self,
-        generic_values: &[Type],
-        mappings: &[(&Path, &Type)],
+        generic_values: &[GenericArgument],
+        mappings: &[(&Path, &GenericArgument)],
         config: &Config,
     ) -> Self {
         Self::new(
@@ -382,7 +383,7 @@ impl Enum {
         }
 
         let path = Path::new(item.ident.unraw().to_string());
-        let generic_params = GenericParams::new(&item.generics);
+        let generic_params = GenericParams::load(&item.generics)?;
 
         let mut variants = Vec::new();
         let mut has_data = false;
@@ -611,28 +612,11 @@ impl Item for Enum {
 
     fn instantiate_monomorph(
         &self,
-        generic_values: &[Type],
+        generic_values: &[GenericArgument],
         library: &Library,
         out: &mut Monomorphs,
     ) {
-        assert!(
-            self.generic_params.len() > 0,
-            "{} is not generic",
-            self.path.name()
-        );
-        assert!(
-            self.generic_params.len() == generic_values.len(),
-            "{} has {} params but is being instantiated with {} values",
-            self.path.name(),
-            self.generic_params.len(),
-            generic_values.len(),
-        );
-
-        let mappings = self
-            .generic_params
-            .iter()
-            .zip(generic_values.iter())
-            .collect::<Vec<_>>();
+        let mappings = self.generic_params.call(self.path.name(), generic_values);
 
         for variant in &self.variants {
             if let VariantBody::Body { ref body, .. } = variant.body {

@@ -3,29 +3,95 @@ use std::ops::Deref;
 
 use syn::ext::IdentExt;
 
+use crate::bindgen::cdecl;
 use crate::bindgen::config::{Config, Language};
 use crate::bindgen::declarationtyperesolver::{DeclarationType, DeclarationTypeResolver};
-use crate::bindgen::ir::{Path, Type};
+use crate::bindgen::ir::{ConstExpr, Path, Type};
 use crate::bindgen::utilities::IterHelpers;
 use crate::bindgen::writer::{Source, SourceWriter};
 
+#[derive(Debug, Clone)]
+pub enum GenericParamType {
+    Type,
+    Const(Type),
+}
+
+#[derive(Debug, Clone)]
+pub struct GenericParam {
+    name: Path,
+    ty: GenericParamType,
+}
+
+impl GenericParam {
+    pub fn new_type_param(name: &str) -> Self {
+        GenericParam {
+            name: Path::new(name),
+            ty: GenericParamType::Type,
+        }
+    }
+
+    pub fn load(param: &syn::GenericParam) -> Result<Option<Self>, String> {
+        match *param {
+            syn::GenericParam::Type(syn::TypeParam { ref ident, .. }) => Ok(Some(GenericParam {
+                name: Path::new(ident.unraw().to_string()),
+                ty: GenericParamType::Type,
+            })),
+
+            syn::GenericParam::Lifetime(_) => Ok(None),
+
+            syn::GenericParam::Const(syn::ConstParam {
+                ref ident, ref ty, ..
+            }) => match Type::load(ty)? {
+                None => {
+                    // A type that evaporates, like PhantomData.
+                    Err(format!("unsupported const generic type: {:?}", ty))
+                }
+                Some(ty) => Ok(Some(GenericParam {
+                    name: Path::new(ident.unraw().to_string()),
+                    ty: GenericParamType::Const(ty),
+                })),
+            },
+        }
+    }
+
+    pub fn name(&self) -> &Path {
+        &self.name
+    }
+}
+
 #[derive(Default, Debug, Clone)]
-pub struct GenericParams(pub Vec<Path>);
+pub struct GenericParams(pub Vec<GenericParam>);
 
 impl GenericParams {
-    pub fn new(generics: &syn::Generics) -> Self {
-        GenericParams(
-            generics
-                .params
-                .iter()
-                .filter_map(|x| match *x {
-                    syn::GenericParam::Type(syn::TypeParam { ref ident, .. }) => {
-                        Some(Path::new(ident.unraw().to_string()))
-                    }
-                    _ => None,
-                })
-                .collect(),
-        )
+    pub fn load(generics: &syn::Generics) -> Result<Self, String> {
+        let mut params = vec![];
+        for param in &generics.params {
+            if let Some(p) = GenericParam::load(param)? {
+                params.push(p);
+            }
+        }
+
+        Ok(GenericParams(params))
+    }
+
+    /// Associate each parameter with an argument.
+    pub fn call<'out>(
+        &'out self,
+        item_name: &str,
+        arguments: &'out [GenericArgument],
+    ) -> Vec<(&'out Path, &'out GenericArgument)> {
+        assert!(self.len() > 0, "{} is not generic", item_name);
+        assert!(
+            self.len() == arguments.len(),
+            "{} has {} params but is being instantiated with {} values",
+            item_name,
+            self.len(),
+            arguments.len(),
+        );
+        self.iter()
+            .map(|param| param.name())
+            .zip(arguments.iter())
+            .collect()
     }
 
     fn write_internal<F: Write>(
@@ -40,9 +106,19 @@ impl GenericParams {
                 if i != 0 {
                     out.write(", ");
                 }
-                write!(out, "typename {}", item);
-                if with_default {
-                    write!(out, " = void");
+                match item.ty {
+                    GenericParamType::Type => {
+                        write!(out, "typename {}", item.name);
+                        if with_default {
+                            write!(out, " = void");
+                        }
+                    }
+                    GenericParamType::Const(ref ty) => {
+                        cdecl::write_field(out, ty, item.name.name(), config);
+                        if with_default {
+                            write!(out, " = 0");
+                        }
+                    }
                 }
             }
             out.write(">");
@@ -56,9 +132,9 @@ impl GenericParams {
 }
 
 impl Deref for GenericParams {
-    type Target = [Path];
+    type Target = [GenericParam];
 
-    fn deref(&self) -> &[Path] {
+    fn deref(&self) -> &[GenericParam] {
         &self.0
     }
 }
@@ -69,16 +145,65 @@ impl Source for GenericParams {
     }
 }
 
+/// A (non-lifetime) argument passed to a generic, either a type or a constant expression.
+///
+/// Note: Both arguments in a type like `Array<T, N>` are represented as
+/// `GenericArgument::Type`s, even if `N` is actually the name of a const. This
+/// is a consequence of `syn::GenericArgument` doing the same thing.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum GenericArgument {
+    Type(Type),
+    Const(ConstExpr),
+}
+
+impl GenericArgument {
+    pub fn specialize(&self, mappings: &[(&Path, &GenericArgument)]) -> GenericArgument {
+        match *self {
+            GenericArgument::Type(ref ty) => {
+                if let Type::Path(ref path) = *ty {
+                    if path.is_single_identifier() {
+                        // See note on `GenericArgument` above: `ty` may
+                        // actually be the name of a const. Check for that now.
+                        for &(name, value) in mappings {
+                            if *name == path.path {
+                                return value.clone();
+                            }
+                        }
+                    }
+                }
+                GenericArgument::Type(ty.specialize(mappings))
+            }
+            GenericArgument::Const(ref expr) => GenericArgument::Const(expr.clone()),
+        }
+    }
+
+    pub fn rename_for_config(&mut self, config: &Config, generic_params: &GenericParams) {
+        match *self {
+            GenericArgument::Type(ref mut ty) => ty.rename_for_config(config, generic_params),
+            GenericArgument::Const(ref mut expr) => expr.rename_for_config(config),
+        }
+    }
+}
+
+impl Source for GenericArgument {
+    fn write<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
+        match *self {
+            GenericArgument::Type(ref ty) => ty.write(config, out),
+            GenericArgument::Const(ref expr) => expr.write(config, out),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct GenericPath {
     path: Path,
     export_name: String,
-    generics: Vec<Type>,
+    generics: Vec<GenericArgument>,
     ctype: Option<DeclarationType>,
 }
 
 impl GenericPath {
-    pub fn new(path: Path, generics: Vec<Type>) -> Self {
+    pub fn new(path: Path, generics: Vec<GenericArgument>) -> Self {
         let export_name = path.name().to_owned();
         Self {
             path,
@@ -103,11 +228,11 @@ impl GenericPath {
         &self.path
     }
 
-    pub fn generics(&self) -> &[Type] {
+    pub fn generics(&self) -> &[GenericArgument] {
         &self.generics
     }
 
-    pub fn generics_mut(&mut self) -> &mut [Type] {
+    pub fn generics_mut(&mut self) -> &mut [GenericArgument] {
         &mut self.generics
     }
 
@@ -123,11 +248,15 @@ impl GenericPath {
         &self.export_name
     }
 
+    pub fn is_single_identifier(&self) -> bool {
+        self.generics.is_empty()
+    }
+
     pub fn rename_for_config(&mut self, config: &Config, generic_params: &GenericParams) {
         for generic in &mut self.generics {
             generic.rename_for_config(config, generic_params);
         }
-        if !generic_params.contains(&self.path) {
+        if !generic_params.iter().any(|param| param.name == self.path) {
             config.export.rename(&mut self.export_name);
         }
     }
@@ -156,8 +285,11 @@ impl GenericPath {
                 ref args,
                 ..
             }) => args.iter().try_skip_map(|x| match *x {
-                syn::GenericArgument::Type(ref x) => Type::load(x),
+                syn::GenericArgument::Type(ref x) => Ok(Type::load(x)?.map(GenericArgument::Type)),
                 syn::GenericArgument::Lifetime(_) => Ok(None),
+                syn::GenericArgument::Const(ref x) => {
+                    Ok(Some(GenericArgument::Const(ConstExpr::load(x)?)))
+                }
                 _ => Err(format!("can't handle generic argument {:?}", x)),
             })?,
             syn::PathArguments::Parenthesized(_) => {

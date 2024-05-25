@@ -10,8 +10,9 @@ use crate::bindgen::config::{Config, Language, LayoutConfig};
 use crate::bindgen::declarationtyperesolver::DeclarationTypeResolver;
 use crate::bindgen::dependencies::Dependencies;
 use crate::bindgen::ir::{
-    AnnotationSet, Cfg, ConditionWrite, Constant, Documentation, Field, GenericParams, Item,
-    ItemContainer, Path, Repr, ReprAlign, ReprStyle, ToCondition, Type, Typedef,
+    AnnotationSet, Cfg, ConditionWrite, Constant, Documentation, Field, GenericArgument,
+    GenericParams, Item, ItemContainer, Path, Repr, ReprAlign, ReprStyle, ToCondition, Type,
+    Typedef,
 };
 use crate::bindgen::library::Library;
 use crate::bindgen::mangle;
@@ -102,7 +103,7 @@ impl Struct {
 
         Ok(Struct::new(
             path,
-            GenericParams::new(&item.generics),
+            GenericParams::load(&item.generics)?,
             fields,
             has_tag_field,
             is_enum_variant_body,
@@ -174,8 +175,8 @@ impl Struct {
 
     pub fn specialize(
         &self,
-        generic_values: &[Type],
-        mappings: &[(&Path, &Type)],
+        generic_values: &[GenericArgument],
+        mappings: &[(&Path, &GenericArgument)],
         config: &Config,
     ) -> Self {
         let mangled_path = mangle::mangle_path(&self.path, generic_values, &config.export.mangle);
@@ -204,6 +205,7 @@ impl Struct {
 
     fn emit_bitflags_binop<F: Write>(
         &self,
+        constexpr_prefix: &str,
         operator: char,
         other: &str,
         out: &mut SourceWriter<F>,
@@ -211,7 +213,8 @@ impl Struct {
         out.new_line();
         write!(
             out,
-            "{} operator{}(const {}& {}) const",
+            "{}{} operator{}(const {}& {}) const",
+            constexpr_prefix,
             self.export_name(),
             operator,
             self.export_name(),
@@ -365,29 +368,11 @@ impl Item for Struct {
 
     fn instantiate_monomorph(
         &self,
-        generic_values: &[Type],
+        generic_values: &[GenericArgument],
         library: &Library,
         out: &mut Monomorphs,
     ) {
-        assert!(
-            self.generic_params.len() > 0,
-            "{} is not generic",
-            self.path
-        );
-        assert!(
-            self.generic_params.len() == generic_values.len(),
-            "{} has {} params but is being instantiated with {} values",
-            self.path,
-            self.generic_params.len(),
-            generic_values.len(),
-        );
-
-        let mappings = self
-            .generic_params
-            .iter()
-            .zip(generic_values.iter())
-            .collect::<Vec<_>>();
-
+        let mappings = self.generic_params.call(self.path.name(), generic_values);
         let monomorph = self.specialize(generic_values, &mappings, library.get_config());
         out.insert_struct(library, self, monomorph, generic_values.to_owned());
     }
@@ -560,21 +545,31 @@ impl Source for Struct {
                     wrote_start_newline = true;
                     out.new_line();
                 }
+                let constexpr_prefix = if config.constant.allow_constexpr {
+                    "constexpr "
+                } else {
+                    ""
+                };
+
                 out.new_line();
-                write!(out, "explicit operator bool() const");
+                write!(out, "{}explicit operator bool() const", constexpr_prefix);
                 out.open_brace();
                 write!(out, "return !!bits;");
                 out.close_brace(false);
 
                 out.new_line();
-                write!(out, "{} operator~() const", self.export_name());
+                write!(
+                    out,
+                    "{}{} operator~() const",
+                    constexpr_prefix,
+                    self.export_name()
+                );
                 out.open_brace();
                 write!(out, "return {{static_cast<decltype(bits)>(~bits)}};");
                 out.close_brace(false);
-
-                self.emit_bitflags_binop('|', &other, out);
-                self.emit_bitflags_binop('&', &other, out);
-                self.emit_bitflags_binop('^', &other, out);
+                self.emit_bitflags_binop(constexpr_prefix, '|', &other, out);
+                self.emit_bitflags_binop(constexpr_prefix, '&', &other, out);
+                self.emit_bitflags_binop(constexpr_prefix, '^', &other, out);
             }
 
             // Generate a serializer function that allows dumping this struct

@@ -43,11 +43,20 @@ typedef struct {
  */
 #define DebugFlags_BIGGEST_ALLOWED (DebugFlags){ .bits = (uint32_t)(1 << 31) }
 
+typedef struct {
+  uint64_t bits;
+} LargeFlags;
+/**
+ * Flag with a very large shift that usually would be narrowed.
+ */
+#define LargeFlags_LARGE_SHIFT (LargeFlags){ .bits = (uint64_t)(1ull << 44) }
+#define LargeFlags_INVERTED (LargeFlags){ .bits = (uint64_t)~(LargeFlags_LARGE_SHIFT).bits }
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-void root(AlignFlags flags, DebugFlags bigger_flags);
+void root(AlignFlags flags, DebugFlags bigger_flags, LargeFlags largest_flags);
 
 #ifdef __cplusplus
 } // extern "C"

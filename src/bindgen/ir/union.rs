@@ -10,8 +10,8 @@ use crate::bindgen::config::{Config, Language, LayoutConfig};
 use crate::bindgen::declarationtyperesolver::DeclarationTypeResolver;
 use crate::bindgen::dependencies::Dependencies;
 use crate::bindgen::ir::{
-    AnnotationSet, Cfg, ConditionWrite, Documentation, Field, GenericParams, Item, ItemContainer,
-    Path, Repr, ReprAlign, ReprStyle, ToCondition, Type,
+    AnnotationSet, Cfg, ConditionWrite, Documentation, Field, GenericArgument, GenericParams, Item,
+    ItemContainer, Path, Repr, ReprAlign, ReprStyle, ToCondition,
 };
 use crate::bindgen::library::Library;
 use crate::bindgen::mangle;
@@ -62,7 +62,7 @@ impl Union {
 
         Ok(Union::new(
             path,
-            GenericParams::new(&item.generics),
+            GenericParams::load(&item.generics)?,
             fields,
             repr.align,
             tuple_union,
@@ -223,28 +223,11 @@ impl Item for Union {
 
     fn instantiate_monomorph(
         &self,
-        generic_values: &[Type],
+        generic_values: &[GenericArgument],
         library: &Library,
         out: &mut Monomorphs,
     ) {
-        assert!(
-            self.generic_params.len() > 0,
-            "{} is not generic",
-            self.path
-        );
-        assert!(
-            self.generic_params.len() == generic_values.len(),
-            "{} has {} params but is being instantiated with {} values",
-            self.path,
-            self.generic_params.len(),
-            generic_values.len(),
-        );
-
-        let mappings = self
-            .generic_params
-            .iter()
-            .zip(generic_values.iter())
-            .collect::<Vec<_>>();
+        let mappings = self.generic_params.call(self.path.name(), generic_values);
 
         let mangled_path = mangle::mangle_path(
             &self.path,
