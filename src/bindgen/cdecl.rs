@@ -4,6 +4,7 @@
 
 use std::io::Write;
 
+use crate::bindgen::config::Layout;
 use crate::bindgen::declarationtyperesolver::DeclarationType;
 use crate::bindgen::ir::{ConstExpr, Function, GenericArgument, Type};
 use crate::bindgen::writer::{ListType, SourceWriter};
@@ -20,15 +21,16 @@ enum CDeclarator {
         is_ref: bool,
     },
     Array(String),
-    Func(Vec<(Option<String>, CDecl)>, bool),
+    Func {
+        args: Vec<(Option<String>, CDecl)>,
+        layout: Layout,
+        never_return: bool,
+    },
 }
 
 impl CDeclarator {
     fn is_ptr(&self) -> bool {
-        match self {
-            CDeclarator::Ptr { .. } | CDeclarator::Func(..) => true,
-            _ => false,
-        }
+        matches!(self, CDeclarator::Ptr { .. } | CDeclarator::Func { .. })
     }
 }
 
@@ -89,9 +91,9 @@ impl CDecl {
         cdecl
     }
 
-    fn from_func(f: &Function, layout_vertical: bool, config: &Config) -> CDecl {
+    fn from_func(f: &Function, layout: Layout, config: &Config) -> CDecl {
         let mut cdecl = CDecl::new();
-        cdecl.build_func(f, layout_vertical, config);
+        cdecl.build_func(f, layout, config);
         cdecl
     }
 
@@ -100,7 +102,7 @@ impl CDecl {
         self
     }
 
-    fn build_func(&mut self, f: &Function, layout_vertical: bool, config: &Config) {
+    fn build_func(&mut self, f: &Function, layout: Layout, config: &Config) {
         let args = f
             .args
             .iter()
@@ -116,8 +118,11 @@ impl CDecl {
                 )
             })
             .collect();
-        self.declarators
-            .push(CDeclarator::Func(args, layout_vertical));
+        self.declarators.push(CDeclarator::Func {
+            args,
+            layout,
+            never_return: f.never_return,
+        });
         self.build_type(&f.ret, false, config);
     }
 
@@ -186,6 +191,7 @@ impl CDecl {
                 ref ret,
                 ref args,
                 is_nullable: _,
+                never_return,
             } => {
                 let args = args
                     .iter()
@@ -196,7 +202,11 @@ impl CDecl {
                     is_nullable: true,
                     is_ref: false,
                 });
-                self.declarators.push(CDeclarator::Func(args, false));
+                self.declarators.push(CDeclarator::Func {
+                    args,
+                    layout: config.function.args.clone(),
+                    never_return: *never_return,
+                });
                 self.build_type(ret, false, config);
             }
         }
@@ -307,7 +317,7 @@ impl CDecl {
                         out.write("(");
                     }
                 }
-                CDeclarator::Func(..) => {
+                CDeclarator::Func { .. } => {
                     if next_is_pointer {
                         out.write("(");
                     }
@@ -341,7 +351,11 @@ impl CDecl {
 
                     last_was_pointer = false;
                 }
-                CDeclarator::Func(ref args, layout_vertical) => {
+                CDeclarator::Func {
+                    ref args,
+                    ref layout,
+                    never_return,
+                } => {
                     if last_was_pointer {
                         out.write(")");
                     }
@@ -350,10 +364,16 @@ impl CDecl {
                     if args.is_empty() && config.language == Language::C {
                         out.write("void");
                     }
-                    if layout_vertical {
+
+                    fn write_vertical<F: Write>(
+                        out: &mut SourceWriter<F>,
+                        config: &Config,
+                        args: &[(Option<String>, CDecl)],
+                        ident: Option<&str>,
+                    ) {
                         let align_length = out.line_length_for_align();
                         out.push_set_spaces(align_length);
-                        for (i, &(ref arg_ident, ref arg_ty)) in args.iter().enumerate() {
+                        for (i, (arg_ident, arg_ty)) in args.iter().enumerate() {
                             if i != 0 {
                                 out.write(",");
                                 out.new_line();
@@ -379,8 +399,15 @@ impl CDecl {
                             }
                         }
                         out.pop_tab();
-                    } else {
-                        for (i, &(ref arg_ident, ref arg_ty)) in args.iter().enumerate() {
+                    }
+
+                    fn write_horizontal<F: Write>(
+                        out: &mut SourceWriter<F>,
+                        config: &Config,
+                        args: &[(Option<String>, CDecl)],
+                        ident: Option<&str>,
+                    ) {
+                        for (i, (arg_ident, arg_ty)) in args.iter().enumerate() {
                             if i != 0 {
                                 out.write(", ");
                             }
@@ -405,7 +432,26 @@ impl CDecl {
                             }
                         }
                     }
+
+                    match layout {
+                        Layout::Vertical => write_vertical(out, config, args, ident),
+                        Layout::Horizontal => write_horizontal(out, config, args, ident),
+                        Layout::Auto => {
+                            if !out.try_write(
+                                |out| write_horizontal(out, config, args, ident),
+                                config.line_length,
+                            ) {
+                                write_vertical(out, config, args, ident)
+                            }
+                        }
+                    }
                     out.write(")");
+
+                    if never_return && config.language != Language::Cython {
+                        if let Some(ref no_return_attr) = config.function.no_return {
+                            out.write_fmt(format_args!(" {}", no_return_attr));
+                        }
+                    }
 
                     last_was_pointer = true;
                 }
@@ -416,14 +462,14 @@ impl CDecl {
     fn is_func(&self) -> bool {
         self.declarators
             .iter()
-            .any(|decl| matches!(decl, CDeclarator::Func(_, _)))
+            .any(|decl| matches!(decl, CDeclarator::Func { .. }))
     }
 }
 
 pub fn write_func<F: Write>(
     out: &mut SourceWriter<F>,
     f: &Function,
-    layout_vertical: bool,
+    layout: Layout,
     config: &Config,
 ) {
     let rename_ident;
@@ -435,7 +481,8 @@ pub fn write_func<F: Write>(
         }
         _ => f.path().name(),
     };
-    CDecl::from_func(f, layout_vertical, config).write(out, Some(ident), config);
+
+    CDecl::from_func(f, layout, config).write(out, Some(ident), config);
 }
 
 pub fn write_field<F: Write>(out: &mut SourceWriter<F>, t: &Type, ident: &str, config: &Config) {

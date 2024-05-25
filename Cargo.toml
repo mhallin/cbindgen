@@ -1,6 +1,6 @@
 [package]
 name = "cbindgen"
-version = "0.24.3"
+version = "0.24.4"
 authors = [
   "Emilio Cobos Álvarez <emilio@crisal.io>",
   "Jeff Muizelaar <jmuizelaar@mozilla.com>",
@@ -11,22 +11,19 @@ license = "MPL-2.0"
 description = "A tool for generating C bindings to Rust code."
 keywords = ["bindings", "ffi", "code-generation"]
 categories = ["external-ffi-bindings", "development-tools::ffi"]
-repository = "https://github.com/eqrion/cbindgen/"
+repository = "https://github.com/eqrion/cbindgen"
 edition = "2018"
 exclude = [
   "tests/profile.rs", # Test relies in a sub-crate, see https://github.com/rust-lang/cargo/issues/9017
 ]
 
-[badges]
-travis-ci = { repository = "eqrion/cbindgen" }
-
 [dependencies]
 clap = { version = "3.1", optional = true }
 indexmap = "1"
 log = "0.4"
-serde = { version = "1.0.103", default-features = false, features = ["derive"]}
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 serde_json = "1.0"
-tempfile = "3.0"
+tempfile = "=3.3.0"
 toml = "0.5"
 proc-macro2 = "1"
 quote = "1"

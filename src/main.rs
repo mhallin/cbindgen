@@ -113,7 +113,7 @@ fn load_bindings(input: &Path, matches: &ArgMatches) -> Result<Bindings, Error> 
             let binding_crate_dir = lib.find_crate_dir(&lib.binding_crate_ref());
 
             if let Some(binding_crate_dir) = binding_crate_dir {
-                Config::from_root_or_default(&binding_crate_dir)
+                Config::from_root_or_default(binding_crate_dir)
             } else {
                 // This shouldn't happen
                 Config::from_root_or_default(input)
@@ -157,7 +157,7 @@ fn main() {
                 .long("lang")
                 .value_name("LANGUAGE")
                 .help("Specify the language to output bindings in")
-                .possible_values(&["c++", "C++", "c", "C", "cython", "Cython", "cs", "CS"]),
+                .possible_values(["c++", "C++", "c", "C", "cython", "Cython", "cs", "CS"]),
         )
         .arg(
             Arg::new("cpp-compat")
@@ -176,7 +176,7 @@ fn main() {
                 .long("style")
                 .value_name("STYLE")
                 .help("Specify the declaration style to use for bindings")
-                .possible_values(&["Both", "both", "Tag", "tag", "Type", "type"]),
+                .possible_values(["Both", "both", "Tag", "tag", "Type", "type"]),
         )
         .arg(
             Arg::new("d")
@@ -253,7 +253,7 @@ fn main() {
                     "Specify the profile to use when expanding macros. \
                      Has no effect otherwise."
                 )
-                .possible_values(&["Debug", "debug", "Release", "release"]),
+                .possible_values(["Debug", "debug", "Release", "release"]),
         )
         .arg(
             Arg::new("quiet")

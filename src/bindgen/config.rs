@@ -18,7 +18,7 @@ pub use crate::bindgen::rename::RenameRule;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// A language type to generate bindings for.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Language {
     Cxx,
     C,
@@ -121,7 +121,7 @@ impl FromStr for LineEndingStyle {
 deserialize_enum_str!(LineEndingStyle);
 
 /// A style of braces to use for generating code.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Braces {
     SameLine,
     NextLine,
@@ -144,7 +144,7 @@ impl FromStr for Braces {
 deserialize_enum_str!(Braces);
 
 /// A type of layout to use when generating long lines of code.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Layout {
     Horizontal,
     Vertical,
@@ -170,7 +170,7 @@ impl FromStr for Layout {
 deserialize_enum_str!(Layout);
 
 /// How the comments containing documentation should be styled.
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum DocumentationStyle {
     C,
     C99,
@@ -221,7 +221,7 @@ impl FromStr for DocumentationLength {
 deserialize_enum_str!(DocumentationLength);
 
 /// A style of Style to use when generating structs and enums.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Style {
     Both,
     Tag,
@@ -278,7 +278,7 @@ impl FromStr for Style {
 deserialize_enum_str!(Style);
 
 /// Different item types that we can generate and filter.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ItemType {
     Constants,
     Globals,
@@ -312,7 +312,7 @@ impl FromStr for ItemType {
 deserialize_enum_str!(ItemType);
 
 /// Type which specifies the sort order of functions
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortKey {
     Name,
     None,
@@ -731,7 +731,7 @@ pub struct MacroExpansionConfig {
 }
 
 /// Controls which Cargo profile is used for macro expansion.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Profile {
     Debug,
     Release,
