@@ -5,12 +5,4 @@ cdef extern from *:
   ctypedef struct va_list
 
 cdef extern from *:
-
-  const uint8_t EXPORT_ME_TOO # = 42
-
-  cdef struct ExportMe:
-    uint64_t val;
-
-  void export_me(ExportMe *val);
-
-  void from_really_nested_mod();
+  pass

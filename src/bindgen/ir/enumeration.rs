@@ -552,8 +552,13 @@ impl Item for Enum {
                 .iter()
                 .map(|variant| {
                     EnumVariant::new(
-                        r.apply(&variant.export_name, IdentifierType::EnumVariant(self))
-                            .into_owned(),
+                        r.apply(
+                            &variant.export_name,
+                            IdentifierType::EnumVariant {
+                                prefix: &self.export_name,
+                            },
+                        )
+                        .into_owned(),
                         variant.discriminant.clone(),
                         match variant.body {
                             VariantBody::Empty(..) => variant.body.clone(),
@@ -628,9 +633,7 @@ impl Item for Enum {
             self.documentation.clone(),
         );
 
-        monomorph.add_monomorphs(library, out);
-
-        out.insert_enum(self, monomorph, generic_values.to_owned());
+        out.insert_enum(library, self, monomorph, generic_values.to_owned());
     }
 
     fn add_dependencies(&self, library: &Library, out: &mut Dependencies) {
