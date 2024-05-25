@@ -62,7 +62,7 @@ impl Function {
                     never_return = true;
                     Type::Primitive(PrimitiveType::Void)
                 } else {
-                    Type::load(ty)?.unwrap_or_else(|| Type::Primitive(PrimitiveType::Void))
+                    Type::load(ty)?.unwrap_or(Type::Primitive(PrimitiveType::Void))
                 }
             }
         };
@@ -263,11 +263,11 @@ impl Function {
         };
         for (i, arg) in self.args.iter().enumerate() {
             match &arg.ty {
-                Type::FuncPtr(return_type, arg_tys) => {
+                Type::FuncPtr { ret, args, is_nullable: _ } => {
                     out.write("[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
                     out.new_line();
                     out.write("public delegate ");
-                    cdecl::write_type(out, return_type, config);
+                    cdecl::write_type(out, ret, config);
                     write!(
                         out,
                         " {}__{}(",
@@ -275,7 +275,7 @@ impl Function {
                         arg.name.clone().unwrap_or_else(|| format!("{}", i))
                     );
 
-                    for (arg_i, (arg_name, arg_ty)) in arg_tys.iter().enumerate() {
+                    for (arg_i, (arg_name, arg_ty)) in args.iter().enumerate() {
                         if arg_i > 0 {
                             out.write(", ");
                         }
@@ -422,7 +422,7 @@ impl Source for Function {
             out.write(";");
 
             condition.write_after(config, out);
-        };
+        }
 
         let option_1 = out.measure(|out| write_1(self, config, out));
 

@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  rustfmt:
+  rustfmt-clippy:
 
     runs-on: ubuntu-latest
 
@@ -29,6 +29,13 @@ jobs:
       with:
         command: fmt
         args: -- --check
+
+    - name: Install clippy
+      uses: dtolnay/rust-toolchain@clippy
+
+    - name: Run clippy
+      run: |
+        cargo clippy --workspace -- -D warnings
 
     - name: Install minimum supported Rust version
       uses: actions-rs/toolchain@v1
@@ -78,10 +85,14 @@ jobs:
       run: |
         cargo test --verbose
 
-    - name: Cargo update minimal-versions
+    - name: Test package
+      env:
+        CBINDGEN_TEST_VERIFY: 1
       run: |
-        cargo update -Zminimal-versions
+        cargo package --verbose
+        (cd target/package/cbindgen-$(cargo run -- --version | cut -d ' ' -f 2) && cargo test --verbose)
 
     - name: Test minimal-versions
       run: |
+        cargo update -Zminimal-versions
         cargo test

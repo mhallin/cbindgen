@@ -29,16 +29,24 @@ jobs:
       run: |
         strip target/release/cbindgen
 
-    - name: Get cbindgen's version
+    - name: Handle release data and files
       id: tagName
       run: |
         VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
         echo "::set-output name=version::$VERSION"
+        # Steps to extract the last release notes from CHANGES:
+        #   1. Remove the first three lines
+        #   2. Stop at the next heading level
+        #   3. Remove the last line
+        #   4. Deindent the bullet points to avoid a markdown code block
+        tail -n +3 CHANGES | sed '/^##/q' |
+        sed '$ d' | awk '{$1=$1};1' > CHANGES.txt
 
     - name: Create a release
       uses: softprops/action-gh-release@v1
       with:
         name: v${{ steps.tagName.outputs.version }}
+        body_path: CHANGES.txt
         files: |
           target/release/cbindgen
       env:

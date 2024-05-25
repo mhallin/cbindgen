@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::io::Write;
 
 use crate::bindgen::cdecl;
@@ -22,101 +23,169 @@ pub enum PrimitiveType {
     SChar,
     UChar,
     Char32,
+    Float,
+    Double,
+    VaList,
+    PtrDiffT,
+    Integer {
+        zeroable: bool,
+        signed: bool,
+        kind: IntKind,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum IntKind {
     Short,
     Int,
     Long,
     LongLong,
-    UShort,
-    UInt,
-    ULong,
-    ULongLong,
-    USize,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    ISize,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    Float,
-    Double,
     SizeT,
-    SSizeT,
-    PtrDiffT,
-    VaList,
+    Size,
+    B8,
+    B16,
+    B32,
+    B64,
 }
 
 impl PrimitiveType {
     pub fn maybe(path: &str) -> Option<PrimitiveType> {
-        match path {
-            "c_void" => Some(PrimitiveType::Void),
-            "c_char" => Some(PrimitiveType::Char),
-            "c_schar" => Some(PrimitiveType::SChar),
-            "c_uchar" => Some(PrimitiveType::UChar),
-            "c_float" => Some(PrimitiveType::Float),
-            "c_double" => Some(PrimitiveType::Double),
-            "c_short" => Some(PrimitiveType::Short),
-            "c_int" => Some(PrimitiveType::Int),
-            "c_long" => Some(PrimitiveType::Long),
-            "c_longlong" => Some(PrimitiveType::LongLong),
-            "c_ushort" => Some(PrimitiveType::UShort),
-            "c_uint" => Some(PrimitiveType::UInt),
-            "c_ulong" => Some(PrimitiveType::ULong),
-            "c_ulonglong" => Some(PrimitiveType::ULongLong),
-            "bool" => Some(PrimitiveType::Bool),
-            "char" => Some(PrimitiveType::Char32),
-            "usize" | "uintptr_t" => Some(PrimitiveType::USize),
-            "u8" | "uint8_t" => Some(PrimitiveType::UInt8),
-            "u16" | "uint16_t" => Some(PrimitiveType::UInt16),
-            "u32" | "uint32_t" => Some(PrimitiveType::UInt32),
-            "u64" | "uint64_t" => Some(PrimitiveType::UInt64),
-            "isize" | "intptr_t" => Some(PrimitiveType::ISize),
-            "i8" | "int8_t" => Some(PrimitiveType::Int8),
-            "i16" | "int16_t" => Some(PrimitiveType::Int16),
-            "i32" | "int32_t" => Some(PrimitiveType::Int32),
-            "i64" | "int64_t" => Some(PrimitiveType::Int64),
-            "f32" => Some(PrimitiveType::Float),
-            "f64" => Some(PrimitiveType::Double),
-            "size_t" => Some(PrimitiveType::SizeT),
-            "ssize_t" => Some(PrimitiveType::SSizeT),
-            "ptrdiff_t" => Some(PrimitiveType::PtrDiffT),
-            "VaList" => Some(PrimitiveType::VaList),
-            _ => None,
-        }
+        Some(match path {
+            "c_void" => PrimitiveType::Void,
+            "c_char" => PrimitiveType::Char,
+            "c_schar" => PrimitiveType::SChar,
+            "c_uchar" => PrimitiveType::UChar,
+            "c_float" => PrimitiveType::Float,
+            "c_double" => PrimitiveType::Double,
+            "ptrdiff_t" => PrimitiveType::PtrDiffT,
+            "VaList" => PrimitiveType::VaList,
+            "bool" => PrimitiveType::Bool,
+            "char" => PrimitiveType::Char32,
+
+            "f32" => PrimitiveType::Float,
+            "f64" => PrimitiveType::Double,
+
+            _ => {
+                let (kind, signed) = match path {
+                    "c_short" => (IntKind::Short, true),
+                    "c_int" => (IntKind::Int, true),
+                    "c_long" => (IntKind::Long, true),
+                    "c_longlong" => (IntKind::LongLong, true),
+                    "ssize_t" => (IntKind::SizeT, true),
+                    "c_ushort" => (IntKind::Short, false),
+                    "c_uint" => (IntKind::Int, false),
+                    "c_ulong" => (IntKind::Long, false),
+                    "c_ulonglong" => (IntKind::LongLong, false),
+                    "size_t" => (IntKind::SizeT, false),
+
+                    "isize" | "intptr_t" => (IntKind::Size, true),
+                    "usize" | "uintptr_t" => (IntKind::Size, false),
+
+                    "u8" | "uint8_t" => (IntKind::B8, false),
+                    "u16" | "uint16_t" => (IntKind::B16, false),
+                    "u32" | "uint32_t" => (IntKind::B32, false),
+                    "u64" | "uint64_t" => (IntKind::B64, false),
+                    "i8" | "int8_t" => (IntKind::B8, true),
+                    "i16" | "int16_t" => (IntKind::B16, true),
+                    "i32" | "int32_t" => (IntKind::B32, true),
+                    "i64" | "int64_t" => (IntKind::B64, true),
+                    _ => return None,
+                };
+                PrimitiveType::Integer {
+                    zeroable: true,
+                    signed,
+                    kind,
+                }
+            }
+        })
     }
 
     pub fn to_repr_rust(&self) -> &'static str {
         match *self {
+            PrimitiveType::Bool => "bool",
             PrimitiveType::Void => "c_void",
             PrimitiveType::Char => "c_char",
             PrimitiveType::SChar => "c_schar",
             PrimitiveType::UChar => "c_uchar",
             PrimitiveType::Char32 => "char",
-            PrimitiveType::Short => "c_short",
-            PrimitiveType::Int => "c_int",
-            PrimitiveType::Long => "c_long",
-            PrimitiveType::LongLong => "c_longlong",
-            PrimitiveType::UShort => "c_ushort",
-            PrimitiveType::UInt => "c_uint",
-            PrimitiveType::ULong => "c_ulong",
-            PrimitiveType::ULongLong => "c_ulonglong",
-            PrimitiveType::Bool => "bool",
-            PrimitiveType::USize => "usize",
-            PrimitiveType::UInt8 => "u8",
-            PrimitiveType::UInt16 => "u16",
-            PrimitiveType::UInt32 => "u32",
-            PrimitiveType::UInt64 => "u64",
-            PrimitiveType::ISize => "isize",
-            PrimitiveType::Int8 => "i8",
-            PrimitiveType::Int16 => "i16",
-            PrimitiveType::Int32 => "i32",
-            PrimitiveType::Int64 => "i64",
+            PrimitiveType::Integer {
+                kind,
+                signed,
+                zeroable: _,
+            } => match kind {
+                IntKind::Short => {
+                    if signed {
+                        "c_short"
+                    } else {
+                        "c_ushort"
+                    }
+                }
+                IntKind::Int => {
+                    if signed {
+                        "c_int"
+                    } else {
+                        "c_uint"
+                    }
+                }
+                IntKind::Long => {
+                    if signed {
+                        "c_long"
+                    } else {
+                        "c_ulong"
+                    }
+                }
+                IntKind::LongLong => {
+                    if signed {
+                        "c_longlong"
+                    } else {
+                        "c_ulonglong"
+                    }
+                }
+                IntKind::SizeT => {
+                    if signed {
+                        "ssize_t"
+                    } else {
+                        "size_t"
+                    }
+                }
+                IntKind::Size => {
+                    if signed {
+                        "isize"
+                    } else {
+                        "usize"
+                    }
+                }
+                IntKind::B8 => {
+                    if signed {
+                        "i8"
+                    } else {
+                        "u8"
+                    }
+                }
+                IntKind::B16 => {
+                    if signed {
+                        "i16"
+                    } else {
+                        "u16"
+                    }
+                }
+                IntKind::B32 => {
+                    if signed {
+                        "i32"
+                    } else {
+                        "u32"
+                    }
+                }
+                IntKind::B64 => {
+                    if signed {
+                        "i64"
+                    } else {
+                        "u64"
+                    }
+                }
+            },
             PrimitiveType::Float => "f32",
             PrimitiveType::Double => "f64",
-            PrimitiveType::SizeT => "size_t",
-            PrimitiveType::SSizeT => "ssize_t",
             PrimitiveType::PtrDiffT => "ptrdiff_t",
             PrimitiveType::VaList => "va_list",
         }
@@ -138,30 +207,90 @@ impl PrimitiveType {
             //    uint_least32_t, which is _not_ guaranteed to be 4-bytes.
             //
             PrimitiveType::Char32 => "uint32_t",
-            PrimitiveType::Short => "short",
-            PrimitiveType::Int => "int",
-            PrimitiveType::Long => "long",
-            PrimitiveType::LongLong => "long long",
-            PrimitiveType::UShort => "unsigned short",
-            PrimitiveType::UInt => "unsigned int",
-            PrimitiveType::ULong => "unsigned long",
-            PrimitiveType::ULongLong => "unsigned long long",
-            PrimitiveType::USize if config.usize_is_size_t => "size_t",
-            PrimitiveType::USize => "uintptr_t",
-            PrimitiveType::UInt8 => "uint8_t",
-            PrimitiveType::UInt16 => "uint16_t",
-            PrimitiveType::UInt32 => "uint32_t",
-            PrimitiveType::UInt64 => "uint64_t",
-            PrimitiveType::ISize if config.usize_is_size_t => "ptrdiff_t",
-            PrimitiveType::ISize => "intptr_t",
-            PrimitiveType::Int8 => "int8_t",
-            PrimitiveType::Int16 => "int16_t",
-            PrimitiveType::Int32 => "int32_t",
-            PrimitiveType::Int64 => "int64_t",
+            PrimitiveType::Integer {
+                kind,
+                signed,
+                zeroable: _,
+            } => match kind {
+                IntKind::Short => {
+                    if signed {
+                        "short"
+                    } else {
+                        "unsigned short"
+                    }
+                }
+                IntKind::Int => {
+                    if signed {
+                        "int"
+                    } else {
+                        "unsigned int"
+                    }
+                }
+                IntKind::Long => {
+                    if signed {
+                        "long"
+                    } else {
+                        "unsigned long"
+                    }
+                }
+                IntKind::LongLong => {
+                    if signed {
+                        "long long"
+                    } else {
+                        "unsigned long long"
+                    }
+                }
+                IntKind::SizeT => {
+                    if signed {
+                        "ssize_t"
+                    } else {
+                        "size_t"
+                    }
+                }
+                IntKind::Size => {
+                    if config.usize_is_size_t {
+                        if signed {
+                            "ptrdiff_t"
+                        } else {
+                            "size_t"
+                        }
+                    } else if signed {
+                        "intptr_t"
+                    } else {
+                        "uintptr_t"
+                    }
+                }
+                IntKind::B8 => {
+                    if signed {
+                        "int8_t"
+                    } else {
+                        "uint8_t"
+                    }
+                }
+                IntKind::B16 => {
+                    if signed {
+                        "int16_t"
+                    } else {
+                        "uint16_t"
+                    }
+                }
+                IntKind::B32 => {
+                    if signed {
+                        "int32_t"
+                    } else {
+                        "uint32_t"
+                    }
+                }
+                IntKind::B64 => {
+                    if signed {
+                        "int64_t"
+                    } else {
+                        "uint64_t"
+                    }
+                }
+            },
             PrimitiveType::Float => "float",
             PrimitiveType::Double => "double",
-            PrimitiveType::SizeT => "size_t",
-            PrimitiveType::SSizeT => "ssize_t",
             PrimitiveType::PtrDiffT => "ptrdiff_t",
             PrimitiveType::VaList => "va_list",
         }
@@ -214,7 +343,11 @@ pub enum Type {
     Path(GenericPath),
     Primitive(PrimitiveType),
     Array(Box<Type>, ArrayLength),
-    FuncPtr(Box<Type>, Vec<(Option<String>, Type)>),
+    FuncPtr {
+        ret: Box<Type>,
+        args: Vec<(Option<String>, Type)>,
+        is_nullable: bool,
+    },
 }
 
 impl Type {
@@ -234,11 +367,7 @@ impl Type {
 
                 let converted = match converted {
                     Some(converted) => converted,
-                    None => {
-                        return Err("Cannot have a pointer to a zero sized type. If you are \
-                                    trying to represent `void*` use `c_void*`."
-                            .to_owned());
-                    }
+                    None => Type::Primitive(PrimitiveType::Void),
                 };
 
                 // TODO(emilio): we could make these use is_ref: true.
@@ -255,11 +384,7 @@ impl Type {
 
                 let converted = match converted {
                     Some(converted) => converted,
-                    None => {
-                        return Err("Cannot have a pointer to a zero sized type. If you are \
-                                    trying to represent `void*` use `c_void*`."
-                            .to_owned());
-                    }
+                    None => Type::Primitive(PrimitiveType::Void),
                 };
 
                 let is_const = pointer.mutability.is_none();
@@ -355,7 +480,11 @@ impl Type {
                     }
                 };
 
-                Type::FuncPtr(Box::new(ret), args)
+                Type::FuncPtr {
+                    ret: Box::new(ret),
+                    args,
+                    is_nullable: false,
+                }
             }
             syn::Type::Tuple(ref tuple) => {
                 if tuple.elems.is_empty() {
@@ -380,30 +509,83 @@ impl Type {
         }
     }
 
-    pub fn is_repr_ptr(&self) -> bool {
-        match *self {
-            Type::Ptr { .. } => true,
-            Type::FuncPtr(..) => true,
-            _ => false,
-        }
+    pub fn make_zeroable(&self) -> Option<Self> {
+        let (kind, signed) = match *self {
+            Type::Primitive(PrimitiveType::Integer {
+                zeroable: false,
+                kind,
+                signed,
+            }) => (kind, signed),
+            _ => return None,
+        };
+
+        Some(Type::Primitive(PrimitiveType::Integer {
+            kind,
+            signed,
+            zeroable: true,
+        }))
     }
 
     pub fn make_nullable(&self) -> Option<Self> {
-        match self.clone() {
+        match *self {
             Type::Ptr {
-                ty,
+                ref ty,
                 is_const,
                 is_ref,
-                ..
+                is_nullable: false,
             } => Some(Type::Ptr {
-                ty,
+                ty: ty.clone(),
                 is_const,
                 is_ref,
                 is_nullable: true,
             }),
-            Type::FuncPtr(x, y) => Some(Type::FuncPtr(x, y)),
+            Type::FuncPtr {
+                ref ret,
+                ref args,
+                is_nullable: false,
+            } => Some(Type::FuncPtr {
+                ret: ret.clone(),
+                args: args.clone(),
+                is_nullable: true,
+            }),
             _ => None,
         }
+    }
+
+    fn nonzero_to_primitive(&self) -> Option<Self> {
+        let path = match *self {
+            Type::Path(ref p) => p,
+            _ => return None,
+        };
+
+        if !path.generics().is_empty() {
+            return None;
+        }
+
+        let name = path.name();
+        if !name.starts_with("NonZero") {
+            return None;
+        }
+
+        let (kind, signed) = match path.name() {
+            "NonZeroU8" => (IntKind::B8, false),
+            "NonZeroU16" => (IntKind::B16, false),
+            "NonZeroU32" => (IntKind::B32, false),
+            "NonZeroU64" => (IntKind::B64, false),
+            "NonZeroUSize" => (IntKind::Size, false),
+            "NonZeroI8" => (IntKind::B8, true),
+            "NonZeroI16" => (IntKind::B16, true),
+            "NonZeroI32" => (IntKind::B32, true),
+            "NonZeroI64" => (IntKind::B64, true),
+            "NonZeroISize" => (IntKind::Size, true),
+            _ => return None,
+        };
+
+        Some(Type::Primitive(PrimitiveType::Integer {
+            zeroable: false,
+            signed,
+            kind,
+        }))
     }
 
     fn simplified_type(&self, config: &Config) -> Option<Self> {
@@ -412,30 +594,45 @@ impl Type {
             _ => return None,
         };
 
+        if path.generics().is_empty() {
+            return self.nonzero_to_primitive();
+        }
+
         if path.generics().len() != 1 {
             return None;
         }
 
-        let mut generic = path.generics()[0].clone();
-        generic.simplify_standard_types(config);
-
+        let unsimplified_generic = &path.generics()[0];
+        let generic = match unsimplified_generic.simplified_type(config) {
+            Some(generic) => Cow::Owned(generic),
+            None => Cow::Borrowed(unsimplified_generic),
+        };
         match path.name() {
-            // FIXME(#223): This is not quite correct.
-            "Option" if generic.is_repr_ptr() => generic.make_nullable(),
+            "Option" => {
+                if let Some(nullable) = generic.make_nullable() {
+                    return Some(nullable);
+                }
+                if let Some(zeroable) = generic.make_zeroable() {
+                    return Some(zeroable);
+                }
+                None
+            }
             "NonNull" => Some(Type::Ptr {
-                ty: Box::new(generic),
+                ty: Box::new(generic.into_owned()),
                 is_const: false,
                 is_nullable: false,
                 is_ref: false,
             }),
             "Box" if config.language != Language::Cxx => Some(Type::Ptr {
-                ty: Box::new(generic),
+                ty: Box::new(generic.into_owned()),
                 is_const: false,
                 is_nullable: false,
                 is_ref: false,
             }),
-            "Cell" => Some(generic),
-            "ManuallyDrop" | "MaybeUninit" if config.language != Language::Cxx => Some(generic),
+            "Cell" => Some(generic.into_owned()),
+            "ManuallyDrop" | "MaybeUninit" if config.language != Language::Cxx => {
+                Some(generic.into_owned())
+            }
             _ => None,
         }
     }
@@ -455,7 +652,11 @@ impl Type {
                 generic_path.replace_self_with(self_ty);
             }
             Type::Primitive(..) => {}
-            Type::FuncPtr(ref mut ret, ref mut args) => {
+            Type::FuncPtr {
+                ref mut ret,
+                ref mut args,
+                ..
+            } => {
                 ret.replace_self_with(self_ty);
                 for arg in args {
                     arg.1.replace_self_with(self_ty);
@@ -478,7 +679,7 @@ impl Type {
                 Type::Array(..) => {
                     return None;
                 }
-                Type::FuncPtr(..) => {
+                Type::FuncPtr { .. } => {
                     return None;
                 }
             };
@@ -519,13 +720,19 @@ impl Type {
             Type::Array(ref ty, ref constant) => {
                 Type::Array(Box::new(ty.specialize(mappings)), constant.clone())
             }
-            Type::FuncPtr(ref ret, ref args) => Type::FuncPtr(
-                Box::new(ret.specialize(mappings)),
-                args.iter()
+            Type::FuncPtr {
+                ref ret,
+                ref args,
+                is_nullable,
+            } => Type::FuncPtr {
+                ret: Box::new(ret.specialize(mappings)),
+                args: args
+                    .iter()
                     .cloned()
                     .map(|(name, ty)| (name, ty.specialize(mappings)))
                     .collect(),
-            ),
+                is_nullable,
+            },
         }
     }
 
@@ -569,7 +776,9 @@ impl Type {
             Type::Array(ref ty, _) => {
                 ty.add_dependencies_ignoring_generics(generic_params, library, out);
             }
-            Type::FuncPtr(ref ret, ref args) => {
+            Type::FuncPtr {
+                ref ret, ref args, ..
+            } => {
                 ret.add_dependencies_ignoring_generics(generic_params, library, out);
                 for (_, ref arg) in args {
                     arg.add_dependencies_ignoring_generics(generic_params, library, out);
@@ -603,7 +812,9 @@ impl Type {
             Type::Array(ref ty, _) => {
                 ty.add_monomorphs(library, out);
             }
-            Type::FuncPtr(ref ret, ref args) => {
+            Type::FuncPtr {
+                ref ret, ref args, ..
+            } => {
                 ret.add_monomorphs(library, out);
                 for (_, ref arg) in args {
                     arg.add_monomorphs(library, out);
@@ -625,7 +836,11 @@ impl Type {
                 ty.rename_for_config(config, generic_params);
                 len.rename_for_config(config);
             }
-            Type::FuncPtr(ref mut ret, ref mut args) => {
+            Type::FuncPtr {
+                ref mut ret,
+                ref mut args,
+                ..
+            } => {
                 ret.rename_for_config(config, generic_params);
                 for (_, arg) in args {
                     arg.rename_for_config(config, generic_params);
@@ -646,7 +861,11 @@ impl Type {
             Type::Array(ref mut ty, _) => {
                 ty.resolve_declaration_types(resolver);
             }
-            Type::FuncPtr(ref mut ret, ref mut args) => {
+            Type::FuncPtr {
+                ref mut ret,
+                ref mut args,
+                ..
+            } => {
                 ret.resolve_declaration_types(resolver);
                 for (_, ref mut arg) in args {
                     arg.resolve_declaration_types(resolver);
@@ -679,7 +898,11 @@ impl Type {
             Type::Array(ref mut ty, _) => {
                 ty.mangle_paths(monomorphs);
             }
-            Type::FuncPtr(ref mut ret, ref mut args) => {
+            Type::FuncPtr {
+                ref mut ret,
+                ref mut args,
+                ..
+            } => {
                 ret.mangle_paths(monomorphs);
                 for (_, ref mut arg) in args {
                     arg.mangle_paths(monomorphs);
@@ -690,11 +913,12 @@ impl Type {
 
     pub fn can_cmp_order(&self) -> bool {
         match *self {
+            // FIXME: Shouldn't this look at ty.can_cmp_order() as well?
             Type::Ptr { is_ref, .. } => !is_ref,
             Type::Path(..) => true,
             Type::Primitive(ref p) => p.can_cmp_order(),
             Type::Array(..) => false,
-            Type::FuncPtr(..) => false,
+            Type::FuncPtr { .. } => false,
         }
     }
 
@@ -704,7 +928,7 @@ impl Type {
             Type::Path(..) => true,
             Type::Primitive(ref p) => p.can_cmp_eq(),
             Type::Array(..) => false,
-            Type::FuncPtr(..) => true,
+            Type::FuncPtr { .. } => true,
         }
     }
 }
