@@ -1,6 +1,6 @@
 [package]
 name = "cbindgen"
-version = "0.22.0"
+version = "0.23.0"
 authors = [
   "Emilio Cobos Álvarez <emilio@crisal.io>",
   "Jeff Muizelaar <jmuizelaar@mozilla.com>",
@@ -33,7 +33,7 @@ quote = "1"
 heck = "0.4"
 
 [dependencies.syn]
-version = "1.0.3"
+version = "1.0.88"
 default-features = false
 features = ["clone-impls", "extra-traits", "full", "parsing", "printing"]
 
