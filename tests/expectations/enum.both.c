@@ -1,3 +1,17 @@
+#if 0
+''' '
+#endif
+
+#ifdef __cplusplus
+template <typename T>
+using Box = T*;
+#endif
+
+#if 0
+' '''
+#endif
+
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -173,6 +187,44 @@ typedef struct P {
   };
 } P;
 
+typedef enum Q_Tag {
+  Ok,
+  Err,
+} Q_Tag;
+
+typedef struct Q {
+  Q_Tag tag;
+  union {
+    struct {
+      uint32_t *ok;
+    };
+    struct {
+      uint32_t err;
+    };
+  };
+} Q;
+
+typedef enum R_Tag {
+  IRFoo,
+  IRBar,
+  IRBaz,
+} R_Tag;
+
+typedef struct IRBar_Body {
+  uint8_t x;
+  int16_t y;
+} IRBar_Body;
+
+typedef struct R {
+  R_Tag tag;
+  union {
+    struct {
+      int16_t IRFoo;
+    };
+    IRBar_Body IRBar;
+  };
+} R;
+
 void root(struct Opaque *opaque,
           A a,
           B b,
@@ -189,7 +241,9 @@ void root(struct Opaque *opaque,
           M m,
           enum N n,
           O o,
-          struct P p);
+          struct P p,
+          struct Q q,
+          struct R r);
 
 #if __cplusplus
 #if FALSE

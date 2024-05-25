@@ -1,3 +1,17 @@
+#if 0
+''' '
+#endif
+
+#ifdef __cplusplus
+template <typename T>
+using Box = T*;
+#endif
+
+#if 0
+' '''
+#endif
+
+
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
@@ -173,6 +187,50 @@ struct P {
   };
 };
 
+struct Q {
+  enum class Tag {
+    Ok,
+    Err,
+  };
+
+  struct Ok_Body {
+    Box<uint32_t> _0;
+  };
+
+  struct Err_Body {
+    uint32_t _0;
+  };
+
+  Tag tag;
+  union {
+    Ok_Body ok;
+    Err_Body err;
+  };
+};
+
+struct R {
+  enum class Tag {
+    IRFoo,
+    IRBar,
+    IRBaz,
+  };
+
+  struct IRFoo_Body {
+    int16_t _0;
+  };
+
+  struct IRBar_Body {
+    uint8_t x;
+    int16_t y;
+  };
+
+  Tag tag;
+  union {
+    IRFoo_Body IRFoo;
+    IRBar_Body IRBar;
+  };
+};
+
 extern "C" {
 
 void root(Opaque *opaque,
@@ -191,7 +249,9 @@ void root(Opaque *opaque,
           M m,
           N n,
           O o,
-          P p);
+          P p,
+          Q q,
+          R r);
 
 } // extern "C"
 

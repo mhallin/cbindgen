@@ -6,18 +6,12 @@ cdef extern from *:
 
 cdef extern from *:
 
-  cdef struct Foo_Bar:
-    const int32_t *something;
+  void test_camel_case(int32_t fooBar);
 
-  cdef enum:
-    Min,
-    Max,
-    Other,
-  ctypedef uint8_t Bar_Tag;
+  void test_pascal_case(int32_t FooBar);
 
-  cdef union Bar:
-    Bar_Tag tag;
-    Foo_Bar min;
-    Foo_Bar max;
+  void test_snake_case(int32_t foo_bar);
 
-  void root(Bar b);
+  void test_screaming_snake_case(int32_t FOO_BAR);
+
+  void test_gecko_case(int32_t aFooBar);

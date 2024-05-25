@@ -41,7 +41,10 @@ struct StyleAlignFlags {
   static const StyleAlignFlags NORMAL;
   static const StyleAlignFlags START;
   static const StyleAlignFlags END;
+  static const StyleAlignFlags ALIAS;
   static const StyleAlignFlags FLEX_START;
+  static const StyleAlignFlags MIXED;
+  static const StyleAlignFlags MIXED_SELF;
 };
 /// 'auto'
 inline const StyleAlignFlags StyleAlignFlags::AUTO = StyleAlignFlags{ /* .bits = */ (uint8_t)0 };
@@ -51,11 +54,31 @@ inline const StyleAlignFlags StyleAlignFlags::NORMAL = StyleAlignFlags{ /* .bits
 inline const StyleAlignFlags StyleAlignFlags::START = StyleAlignFlags{ /* .bits = */ (uint8_t)(1 << 1) };
 /// 'end'
 inline const StyleAlignFlags StyleAlignFlags::END = StyleAlignFlags{ /* .bits = */ (uint8_t)(1 << 2) };
+inline const StyleAlignFlags StyleAlignFlags::ALIAS = StyleAlignFlags{ /* .bits = */ (uint8_t)(StyleAlignFlags::END).bits };
 /// 'flex-start'
 inline const StyleAlignFlags StyleAlignFlags::FLEX_START = StyleAlignFlags{ /* .bits = */ (uint8_t)(1 << 3) };
+inline const StyleAlignFlags StyleAlignFlags::MIXED = StyleAlignFlags{ /* .bits = */ (uint8_t)(((1 << 4) | (StyleAlignFlags::FLEX_START).bits) | (StyleAlignFlags::END).bits) };
+inline const StyleAlignFlags StyleAlignFlags::MIXED_SELF = StyleAlignFlags{ /* .bits = */ (uint8_t)(((1 << 5) | (StyleAlignFlags::FLEX_START).bits) | (StyleAlignFlags::END).bits) };
+
+/// An arbitrary identifier for a native (OS compositor) surface
+struct StyleNativeSurfaceId {
+  uint64_t _0;
+  static const StyleNativeSurfaceId DEBUG_OVERLAY;
+};
+/// A special id for the native surface that is used for debug / profiler overlays.
+inline const StyleNativeSurfaceId StyleNativeSurfaceId::DEBUG_OVERLAY = StyleNativeSurfaceId{ /* ._0 = */ UINT64_MAX };
+
+struct StyleNativeTileId {
+  StyleNativeSurfaceId surface_id;
+  int32_t x;
+  int32_t y;
+  static const StyleNativeTileId DEBUG_OVERLAY;
+};
+/// A special id for the native surface that is used for debug / profiler overlays.
+inline const StyleNativeTileId StyleNativeTileId::DEBUG_OVERLAY = StyleNativeTileId{ /* .surface_id = */ StyleNativeSurfaceId::DEBUG_OVERLAY, /* .x = */ 0, /* .y = */ 0 };
 
 extern "C" {
 
-void root(StyleAlignFlags flags);
+void root(StyleAlignFlags flags, StyleNativeTileId tile);
 
 } // extern "C"

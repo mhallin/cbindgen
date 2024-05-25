@@ -149,11 +149,16 @@ impl EnumVariant {
         if let Some(b) = enum_annotations.bool("derive-ostream") {
             annotations.add_default("derive-ostream", AnnotationValue::Bool(b));
         }
+
+        let body_rule = enum_annotations
+            .parse_atom::<RenameRule>("rename-variant-name-fields")
+            .unwrap_or(config.enumeration.rename_variant_name_fields);
+
         let body = match variant.fields {
             syn::Fields::Unit => VariantBody::Empty(annotations),
             syn::Fields::Named(ref fields) => {
                 let path = Path::new(format!("{}_Body", variant.ident));
-                let name = RenameRule::SnakeCase
+                let name = body_rule
                     .apply(
                         &variant.ident.unraw().to_string(),
                         IdentifierType::StructMember,
@@ -179,7 +184,7 @@ impl EnumVariant {
             }
             syn::Fields::Unnamed(ref fields) => {
                 let path = Path::new(format!("{}_Body", variant.ident));
-                let name = RenameRule::SnakeCase
+                let name = body_rule
                     .apply(
                         &variant.ident.unraw().to_string(),
                         IdentifierType::StructMember,
@@ -237,6 +242,12 @@ impl EnumVariant {
             body,
             cfg,
             documentation,
+        }
+    }
+
+    fn simplify_standard_types(&mut self, config: &Config) {
+        if let VariantBody::Body { ref mut body, .. } = self.body {
+            body.simplify_standard_types(config);
         }
     }
 
@@ -710,7 +721,7 @@ impl Source for Enum {
             }
 
             // Emit fields for all variants with data.
-            self.write_variant_fields(config, out);
+            self.write_variant_fields(config, out, inline_tag_field);
 
             // Close union of all variants with data, only in the non-inline tag scenario.
             // See the comment about Cython on `open_brace`.
@@ -959,7 +970,12 @@ impl Enum {
     }
 
     /// Emit fields for all variants with data.
-    fn write_variant_fields<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
+    fn write_variant_fields<F: Write>(
+        &self,
+        config: &Config,
+        out: &mut SourceWriter<F>,
+        inline_tag_field: bool,
+    ) {
         let mut first = true;
         for variant in &self.variants {
             if let VariantBody::Body {
@@ -984,11 +1000,15 @@ impl Enum {
                     // by the corresponding C code. So we can inline the unnamed struct and get the
                     // same observable result. Moreother we have to do it because Cython doesn't
                     // support unnamed structs.
+                    // For the same reason with Cython we can omit per-variant tags (the first
+                    // field) to avoid extra noise, the main `tag` is enough in this case.
                     if config.language != Language::Cython {
                         out.write("struct");
                         out.open_brace();
                     }
-                    out.write_vertical_source_list(&body.fields, ListType::Cap(";"));
+                    let start_field =
+                        usize::from(inline_tag_field && config.language == Language::Cython);
+                    out.write_vertical_source_list(&body.fields[start_field..], ListType::Cap(";"));
                     if config.language != Language::Cython {
                         out.close_brace(true);
                     }
@@ -1536,6 +1556,12 @@ impl Enum {
                 write!(out, "return *this;");
                 out.close_brace(false);
             }
+        }
+    }
+
+    pub fn simplify_standard_types(&mut self, config: &Config) {
+        for variant in &mut self.variants {
+            variant.simplify_standard_types(config);
         }
     }
 }

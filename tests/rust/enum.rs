@@ -127,6 +127,20 @@ enum P {
     P1(u8, u8, u8),
 }
 
+#[repr(C)]
+enum Q {
+    Ok(Box<u32>),
+    Err(u32),
+}
+
+/// cbindgen:rename-variant-name-fields=None
+#[repr(C)]
+enum R {
+    IRFoo(i16),
+    IRBar { x: u8, y: i16 },
+    IRBaz,
+}
+
 #[no_mangle]
 pub extern "C" fn root(
     opaque: *mut Opaque,
@@ -146,5 +160,7 @@ pub extern "C" fn root(
     n: N,
     o: O,
     p: P,
+    q: Q,
+    r: R,
 ) {
 }
