@@ -68,6 +68,13 @@ fn main() {
 
 You can add configuration options using the [`Builder`](https://docs.rs/cbindgen/*/cbindgen/struct.Builder.html#methods) interface.
 
+Be sure to add the following section to your Cargo.toml:
+
+```
+[build-dependencies]
+cbindgen = "0.20.0"
+```
+
 If you'd like to use a `build.rs` script with a `cbindgen.toml`, consider using [`cbindgen::generate()`](https://docs.rs/cbindgen/*/cbindgen/fn.generate.html) instead.
 
 
@@ -158,6 +165,7 @@ cbindgen contains the following hardcoded mappings (again completely ignoring na
 * f32 => float
 * f64 => double
 * VaList => va_list
+* RawFd => int
 * PhantomData => *evaporates*, can only appear as the field of a type
 * PhantomPinned => *evaporates*, can only appear as the field of a type  
 * () => *evaporates*, can only appear as the field of a type
@@ -498,6 +506,15 @@ documentation = true
 #
 # default: "auto"
 documentation_style = "doxy"
+
+# How much of the documentation for each item is output.
+#
+# possible values:
+# * "short": Only the first line.
+# * "full": The full documentation.
+#
+# default: "full"
+documentation_style = "short"
 
 
 

@@ -3,22 +3,19 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef enum {
-  BarSome,
-  BarThing,
-} Bar;
-
-typedef struct {
-  uint8_t a;
-} FooU8;
-
-typedef FooU8 Boo;
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-void root(Boo x, Bar y);
+/**
+ * The root of all evil.
+ */
+void root(void);
+
+/**
+ * A little above the root, and a lot more visible, with a run-on sentence
+ */
+void trunk(void);
 
 #ifdef __cplusplus
 } // extern "C"

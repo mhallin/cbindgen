@@ -4,7 +4,7 @@
 
 use std::io::Write;
 
-use crate::bindgen::config::{Config, DocumentationStyle, Language};
+use crate::bindgen::config::{Config, DocumentationLength, DocumentationStyle, Language};
 use crate::bindgen::utilities::SynAttributeHelpers;
 use crate::bindgen::writer::{Source, SourceWriter};
 
@@ -43,9 +43,14 @@ impl Source for Documentation {
             return;
         }
 
+        let end = match config.documentation_length {
+            DocumentationLength::Short => 1,
+            DocumentationLength::Full => self.doc_comment.len(),
+        };
+
         // Cython uses Python-style comments, so `documentation_style` is not relevant.
         if config.language == Language::Cython {
-            for line in &self.doc_comment {
+            for line in &self.doc_comment[..end] {
                 write!(out, "#{}", line);
                 out.new_line();
             }
@@ -73,15 +78,15 @@ impl Source for Documentation {
                 out.new_line();
             }
 
+            DocumentationStyle::CSharp => {
+                out.write("/// <summary>");
+                out.new_line();
+            }
+
             _ => (),
         }
 
-        if style == DocumentationStyle::CSharp {
-            out.write("/// <summary>");
-            out.new_line();
-        }
-
-        for line in &self.doc_comment {
+        for line in &self.doc_comment[..end] {
             match style {
                 DocumentationStyle::C => out.write(""),
                 DocumentationStyle::Doxy => out.write(" *"),

@@ -1,6 +1,6 @@
 [package]
 name = "cbindgen"
-version = "0.20.0"
+version = "0.21.0"
 authors = [
   "Emilio Cobos Álvarez <emilio@crisal.io>",
   "Jeff Muizelaar <jmuizelaar@mozilla.com>",
@@ -21,7 +21,7 @@ exclude = [
 travis-ci = { repository = "eqrion/cbindgen" }
 
 [dependencies]
-clap = { version = "2", optional = true }
+clap = { version = "3.1", optional = true }
 indexmap = "1"
 log = "0.4"
 serde = { version = "1.0.103", default-features = false, features = ["derive"]}
@@ -30,7 +30,7 @@ tempfile = "3.0"
 toml = "0.5"
 proc-macro2 = "1"
 quote = "1"
-heck = "0.3"
+heck = "0.4"
 
 [dependencies.syn]
 version = "1.0.3"

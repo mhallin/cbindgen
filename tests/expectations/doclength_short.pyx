@@ -6,13 +6,8 @@ cdef extern from *:
 
 cdef extern from *:
 
-  cdef enum Bar:
-    BarSome,
-    BarThing,
+  # The root of all evil.
+  void root();
 
-  cdef struct FooU8:
-    uint8_t a;
-
-  ctypedef FooU8 Boo;
-
-  void root(Boo x, Bar y);
+  # A little above the root, and a lot more visible, with a run-on sentence
+  void trunk();

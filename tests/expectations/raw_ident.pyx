@@ -6,13 +6,14 @@ cdef extern from *:
 
 cdef extern from *:
 
-  cdef enum Bar:
-    BarSome,
-    BarThing,
+  cdef enum:
+    a,
+    b,
+  ctypedef uint8_t Enum;
 
-  cdef struct FooU8:
-    uint8_t a;
+  ctypedef struct Struct:
+    Enum field;
 
-  ctypedef FooU8 Boo;
+  extern const Enum STATIC;
 
-  void root(Boo x, Bar y);
+  void fn(Struct arg);

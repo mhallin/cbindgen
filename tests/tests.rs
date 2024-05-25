@@ -218,6 +218,10 @@ fn run_compile_test(
 
         cbindgen_outputs.insert(cbindgen_output);
 
+        if env::var_os("CBINDGEN_TEST_NO_COMPILE").is_some() {
+            return;
+        }
+
         compile(
             &generated_file,
             &tests_path,
