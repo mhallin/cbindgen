@@ -18,6 +18,7 @@ use crate::bindgen::ir::{
 };
 use crate::bindgen::language_backend::LanguageBackend;
 use crate::bindgen::library::Library;
+use crate::bindgen::rename::{IdentifierType, RenameRule};
 use crate::bindgen::writer::SourceWriter;
 use crate::bindgen::Bindings;
 
@@ -79,6 +80,12 @@ pub(crate) fn to_known_assoc_constant(associated_to: &Path, name: &str) -> Optio
 }
 
 #[derive(Debug, Clone)]
+pub struct LiteralStructField {
+    pub value: Literal,
+    pub cfg: Option<Cfg>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Literal {
     Expr(String),
     Path {
@@ -101,7 +108,7 @@ pub enum Literal {
     Struct {
         path: Path,
         export_name: String,
-        fields: HashMap<String, Literal>,
+        fields: HashMap<String, LiteralStructField>,
     },
     Cast {
         ty: Type,
@@ -135,7 +142,7 @@ impl Literal {
                     self_ty.name().clone_into(export_name);
                 }
                 for ref mut expr in fields.values_mut() {
-                    expr.replace_self_with(self_ty);
+                    expr.value.replace_self_with(self_ty);
                 }
             }
             Literal::Cast {
@@ -203,7 +210,7 @@ impl Literal {
             Literal::FieldAccess { ref base, .. } => base.visit(visitor),
             Literal::Struct { ref fields, .. } => {
                 for (_name, field) in fields.iter() {
-                    if !field.visit(visitor) {
+                    if !field.value.visit(visitor) {
                         return false;
                     }
                 }
@@ -250,7 +257,7 @@ impl Literal {
             } => {
                 config.export.rename(export_name);
                 for lit in fields.values_mut() {
-                    lit.rename_for_config(config);
+                    lit.value.rename_for_config(config);
                 }
             }
             Literal::FieldAccess { ref mut base, .. } => {
@@ -388,12 +395,13 @@ impl Literal {
                     } => name,
                     _ => return Err(format!("Unsupported call expression. {:?}", *expr)),
                 };
-                let mut fields = HashMap::<String, Literal>::default();
+                let mut fields = HashMap::<String, LiteralStructField>::default();
                 for (index, arg) in args.iter().enumerate() {
                     let ident =
                         member_to_ident(&syn::Member::Unnamed(syn::Index::from(index))).to_string();
                     let value = Literal::load(arg)?;
-                    fields.insert(ident, value);
+                    let field = LiteralStructField { value, cfg: None };
+                    fields.insert(ident, field);
                 }
                 Ok(Literal::Struct {
                     path: Path::new(struct_name.clone()),
@@ -408,11 +416,13 @@ impl Literal {
                 ..
             }) => {
                 let struct_name = path.segments[0].ident.unraw().to_string();
-                let mut field_map = HashMap::<String, Literal>::default();
+                let mut field_map = HashMap::<String, LiteralStructField>::default();
                 for field in fields {
                     let ident = member_to_ident(&field.member).to_string();
+                    let cfg = Cfg::load(&field.attrs);
                     let value = Literal::load(&field.expr)?;
-                    field_map.insert(ident, value);
+                    let field = LiteralStructField { value, cfg };
+                    field_map.insert(ident, field);
                 }
                 Ok(Literal::Struct {
                     path: Path::new(struct_name.clone()),
@@ -666,7 +676,21 @@ impl Constant {
             Cow::Borrowed(self.export_name())
         } else {
             let associated_name = match associated_to_struct {
-                Some(s) => Cow::Borrowed(s.export_name()),
+                Some(s) => {
+                    let name = s.export_name();
+                    let rules = s
+                        .annotations
+                        .parse_atom::<RenameRule>("rename-associated-constant");
+                    let rules = rules
+                        .as_ref()
+                        .unwrap_or(&config.structure.rename_associated_constant);
+
+                    if let Some(r) = rules.not_none() {
+                        r.apply(name, IdentifierType::Type)
+                    } else {
+                        Cow::Borrowed(name)
+                    }
+                }
                 None => {
                     let mut name = self.associated_to.as_ref().unwrap().name().to_owned();
                     config.export.rename(&mut name);
@@ -682,7 +706,7 @@ impl Constant {
             if !out.bindings().struct_is_transparent(path) {
                 break;
             }
-            value = fields.iter().next().unwrap().1
+            value = &fields.iter().next().unwrap().1.value
         }
 
         language_backend.write_documentation(out, self.documentation());

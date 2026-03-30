@@ -501,6 +501,9 @@ pub struct StructConfig {
     /// Whether associated constants should be in the body. Only applicable to
     /// non-transparent structs, and in C++-only.
     pub associated_constants_in_body: bool,
+    /// The rename rule to apply to the struct name used for prefixing associated
+    /// constants
+    pub rename_associated_constant: RenameRule,
     /// The way to annotate this struct as #[must_use].
     pub must_use: Option<String>,
     /// The way to annotation this function as #[deprecated] without notes
@@ -887,6 +890,8 @@ impl ParseConfig {
 pub struct PtrConfig {
     /// Optional attribute to apply to pointers that are required to not be null
     pub non_null_attribute: Option<String>,
+    /// Optional attribute to apply to pointers that may be null
+    pub nullable_attribute: Option<String>,
 }
 
 /// Settings specific to Cython bindings.

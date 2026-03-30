@@ -270,6 +270,7 @@ impl ConstExpr {
                 let generic_path = GenericPath::load(&path.path)?;
                 Ok(ConstExpr::Name(generic_path.export_name().to_owned()))
             }
+            syn::Expr::Cast(ref cast) => Ok(ConstExpr::load(&cast.expr)?),
             _ => Err(format!("can't handle const expression {:?}", expr)),
         }
     }
