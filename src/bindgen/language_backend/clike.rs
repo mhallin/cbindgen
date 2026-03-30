@@ -31,7 +31,7 @@ impl<'a> CLikeLanguageBackend<'a> {
             .annotations()
             .deprecated_note(self.config, DeprecatedNoteKind::EnumVariant)
         {
-            write!(out, " {}", note);
+            write!(out, " {note}");
         }
         if let Some(discriminant) = &u.discriminant {
             out.write(" = ");
@@ -100,7 +100,7 @@ impl<'a> CLikeLanguageBackend<'a> {
         for namespace in namespaces {
             out.new_line();
             if open {
-                write!(out, "namespace {} {{", namespace);
+                write!(out, "namespace {namespace} {{");
 
                 if self.config.language == Language::Csharp {
                     out.push_tab();
@@ -110,7 +110,7 @@ impl<'a> CLikeLanguageBackend<'a> {
                     out.pop_tab();
                 }
 
-                write!(out, "}}  // namespace {}", namespace)
+                write!(out, "}}  // namespace {namespace}")
             }
         }
 
@@ -155,7 +155,7 @@ impl<'a> CLikeLanguageBackend<'a> {
                 .map(|(field, renamed)| {
                     Field::from_name_and_type(
                         // const-ref args to constructor
-                        format!("const& {}", renamed),
+                        format!("const& {renamed}"),
                         field.ty.clone(),
                     )
                 })
@@ -171,7 +171,7 @@ impl<'a> CLikeLanguageBackend<'a> {
                 .map(|(field, renamed)| format!("{}({})", field.name, renamed))
                 .collect();
             out.write_vertical_source_list(self, &vec[..], ListType::Join(","), |_, out, s| {
-                write!(out, "{}", s)
+                write!(out, "{s}")
             });
             out.new_line();
             write!(out, "{{}}");
@@ -201,7 +201,7 @@ impl<'a> CLikeLanguageBackend<'a> {
             };
 
             out.new_line();
-            write!(out, "{}explicit operator bool() const", constexpr_prefix);
+            write!(out, "{constexpr_prefix}explicit operator bool() const");
             out.open_brace();
             write!(out, "return !!{bits};");
             out.close_brace(false);
@@ -254,7 +254,7 @@ impl<'a> CLikeLanguageBackend<'a> {
                 instance,
             );
             out.open_brace();
-            write!(out, "return {} << \"{{ \"", stream);
+            write!(out, "return {stream} << \"{{ \"");
             let vec: Vec<_> = s
                 .fields
                 .iter()
@@ -264,7 +264,7 @@ impl<'a> CLikeLanguageBackend<'a> {
                 self,
                 &vec[..],
                 ListType::Join(" << \", \""),
-                |_, out, s| write!(out, "{}", s),
+                |_, out, s| write!(out, "{s}"),
             );
             out.write(" << \" }\";");
             out.close_brace(false);
@@ -350,19 +350,19 @@ impl<'a> CLikeLanguageBackend<'a> {
 impl LanguageBackend for CLikeLanguageBackend<'_> {
     fn write_headers<W: Write>(&self, out: &mut SourceWriter<W>, package_version: &str) {
         if self.config.package_version {
-            write!(out, "/* Package version: {} */", package_version);
+            write!(out, "/* Package version: {package_version} */");
             out.new_line();
         }
         if let Some(ref f) = self.config.header {
             out.new_line_if_not_start();
-            write!(out, "{}", f);
+            write!(out, "{f}");
             out.new_line();
         }
         if let Some(f) = self.config.include_guard() {
             out.new_line_if_not_start();
-            write!(out, "#ifndef {}", f);
+            write!(out, "#ifndef {f}");
             out.new_line();
-            write!(out, "#define {}", f);
+            write!(out, "#define {f}");
             out.new_line();
         }
         if self.config.pragma_once {
@@ -381,7 +381,7 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
         }
         if let Some(ref f) = self.config.autogen_warning {
             out.new_line_if_not_start();
-            write!(out, "{}", f);
+            write!(out, "{f}");
             out.new_line();
         }
 
@@ -473,17 +473,17 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
         }
 
         for include in self.config.sys_includes() {
-            write!(out, "#include <{}>", include);
+            write!(out, "#include <{include}>");
             out.new_line();
         }
 
         for include in self.config.includes() {
-            write!(out, "#include \"{}\"", include);
+            write!(out, "#include \"{include}\"");
             out.new_line();
         }
 
         if let Some(ref line) = self.config.after_includes {
-            write!(out, "{}", line);
+            write!(out, "{line}");
             out.new_line();
         }
     }
@@ -500,9 +500,9 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
         if let Some(f) = self.config.include_guard() {
             out.new_line_if_not_start();
             if self.config.language == Language::C {
-                write!(out, "#endif  /* {} */", f);
+                write!(out, "#endif  /* {f} */");
             } else {
-                write!(out, "#endif  // {}", f);
+                write!(out, "#endif  // {f}");
             }
             out.new_line();
         }
@@ -670,12 +670,12 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
             match align {
                 ReprAlign::Packed => {
                     if let Some(ref anno) = self.config.layout.packed {
-                        write!(out, " {}", anno);
+                        write!(out, " {anno}");
                     }
                 }
                 ReprAlign::Align(n) => {
                     if let Some(ref anno) = self.config.layout.aligned_n {
-                        write!(out, " {}({})", anno, n);
+                        write!(out, " {anno}({n})");
                     }
                 }
             }
@@ -683,7 +683,7 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
 
         if s.annotations.must_use(self.config) {
             if let Some(ref anno) = self.config.structure.must_use {
-                write!(out, " {}", anno);
+                write!(out, " {anno}");
             }
         }
 
@@ -691,7 +691,7 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
             .annotations
             .deprecated_note(self.config, DeprecatedNoteKind::Struct)
         {
-            write!(out, " {}", note);
+            write!(out, " {note}");
         }
 
         if self.config.language != Language::C || self.config.style.generate_tag() {
@@ -774,12 +774,12 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
             match align {
                 ReprAlign::Packed => {
                     if let Some(ref anno) = self.config.layout.packed {
-                        write!(out, " {}", anno);
+                        write!(out, " {anno}");
                     }
                 }
                 ReprAlign::Align(n) => {
                     if let Some(ref anno) = self.config.layout.aligned_n {
-                        write!(out, " {}({})", anno, n);
+                        write!(out, " {anno}({n})");
                     }
                 }
             }
@@ -955,7 +955,7 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                 DocumentationStyle::Auto => unreachable!(), // Auto case should always be covered
             }
 
-            write!(out, "{}", line);
+            write!(out, "{line}");
             out.new_line();
         }
 
@@ -981,14 +981,14 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
 
     fn write_literal<W: Write>(&mut self, out: &mut SourceWriter<W>, l: &Literal) {
         match l {
-            Literal::Expr(v) => write!(out, "{}", v),
+            Literal::Expr(v) => write!(out, "{v}"),
             Literal::Path {
                 ref associated_to,
                 ref name,
             } => {
                 if let Some((ref path, ref export_name)) = associated_to {
                     if let Some(known) = to_known_assoc_constant(path, name) {
-                        return write!(out, "{}", known);
+                        return write!(out, "{known}");
                     }
                     let path_separator = if self.config.language == Language::C {
                         "_"
@@ -999,9 +999,9 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                     } else {
                         "_"
                     };
-                    write!(out, "{}{}", export_name, path_separator)
+                    write!(out, "{export_name}{path_separator}")
                 }
-                write!(out, "{}", name)
+                write!(out, "{name}")
             }
             Literal::FieldAccess {
                 ref base,
@@ -1009,10 +1009,10 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
             } => {
                 write!(out, "(");
                 self.write_literal(out, base);
-                write!(out, ").{}", field);
+                write!(out, ").{field}");
             }
             Literal::PostfixUnaryOp { op, ref value } => {
-                write!(out, "{}", op);
+                write!(out, "{op}");
                 self.write_literal(out, value);
             }
             Literal::BinOp {
@@ -1022,7 +1022,7 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
             } => {
                 write!(out, "(");
                 self.write_literal(out, left);
-                write!(out, " {} ", op);
+                write!(out, " {op} ");
                 self.write_literal(out, right);
                 write!(out, ")");
             }
@@ -1041,9 +1041,9 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                 let is_constexpr = self.config.language == Language::Cxx
                     && (self.config.constant.allow_static_const || allow_constexpr);
                 if self.config.language == Language::C {
-                    write!(out, "({})", export_name);
+                    write!(out, "({export_name})");
                 } else {
-                    write!(out, "{}", export_name);
+                    write!(out, "{export_name}");
                 }
 
                 write!(out, "{{");
@@ -1063,7 +1063,7 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                             condition.write_before(self.config, out);
                             // TODO: Some C++ versions (c++20?) now support designated
                             // initializers, consider generating them.
-                            write!(out, "/* .{} = */ ", ordered_key);
+                            write!(out, "/* .{ordered_key} = */ ");
                             self.write_literal(out, &lit.value);
                             if i + 1 != ordered_fields.len() {
                                 write!(out, ",");
@@ -1077,11 +1077,11 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                             if self.config.language == Language::Cxx {
                                 // TODO: Some C++ versions (c++20?) now support designated
                                 // initializers, consider generating them.
-                                write!(out, "/* .{} = */ ", ordered_key);
+                                write!(out, "/* .{ordered_key} = */ ");
                             } else if self.config.language == Language::Csharp {
-                                write!(out, "{} = ", ordered_key);
+                                write!(out, "{ordered_key} = ");
                             } else {
-                                write!(out, ".{} = ", ordered_key);
+                                write!(out, ".{ordered_key} = ");
                             }
                             self.write_literal(out, &lit.value);
                         }
@@ -1111,7 +1111,7 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                 if let Some(ref using_namespaces) = b.config.using_namespaces {
                     for namespace in using_namespaces {
                         out.new_line();
-                        write!(out, "using namespace {};", namespace);
+                        write!(out, "using namespace {namespace};");
                     }
                     out.new_line();
                 }

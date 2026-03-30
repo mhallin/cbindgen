@@ -15,8 +15,8 @@ enum DefineKey<'a> {
     Named(&'a str, &'a str),
 }
 
-impl DefineKey<'_> {
-    fn load(key: &str) -> DefineKey {
+impl<'a> DefineKey<'a> {
+    fn load(key: &'a str) -> Self {
         // TODO: dirty parser
         if !key.contains('=') {
             return DefineKey::Boolean(key);
@@ -54,15 +54,15 @@ pub enum Cfg {
 impl fmt::Display for Cfg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Cfg::Boolean(key) => write!(f, "{}", key),
-            Cfg::Named(key, value) => write!(f, "{} = {:?}", key, value),
+            Cfg::Boolean(key) => write!(f, "{key}"),
+            Cfg::Named(key, value) => write!(f, "{key} = {value:?}"),
             Cfg::Any(cfgs) => {
                 write!(f, "any(")?;
                 for (index, cfg) in cfgs.iter().enumerate() {
                     if index > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", cfg)?;
+                    write!(f, "{cfg}")?;
                 }
                 write!(f, ")")
             }
@@ -72,11 +72,11 @@ impl fmt::Display for Cfg {
                     if index > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", cfg)?;
+                    write!(f, "{cfg}")?;
                 }
                 write!(f, ")")
             }
-            Cfg::Not(cfg) => write!(f, "not({})", cfg),
+            Cfg::Not(cfg) => write!(f, "not({cfg})"),
         }
     }
 }
@@ -213,10 +213,7 @@ impl ToCondition for Cfg {
                 if let Some((_, define)) = define {
                     Some(Condition::Define(define.to_owned()))
                 } else {
-                    warn!(
-                        "Missing `[defines]` entry for `{}` in cbindgen config.",
-                        self,
-                    );
+                    warn!("Missing `[defines]` entry for `{self}` in cbindgen config.",);
                     None
                 }
             }
@@ -227,10 +224,7 @@ impl ToCondition for Cfg {
                 if let Some((_, define)) = define {
                     Some(Condition::Define(define.to_owned()))
                 } else {
-                    warn!(
-                        "Missing `[defines]` entry for `{}` in cbindgen config.",
-                        self,
-                    );
+                    warn!("Missing `[defines]` entry for `{self}` in cbindgen config.",);
                     None
                 }
             }
@@ -276,10 +270,10 @@ impl Condition {
         match *self {
             Condition::Define(ref define) => {
                 if config.language == Language::Cython || config.language == Language::Csharp {
-                    write!(out, "{}", define);
+                    write!(out, "{define}");
                 } else {
                     out.write("defined(");
-                    write!(out, "{}", define);
+                    write!(out, "{define}");
                     out.write(")");
                 }
             }

@@ -76,7 +76,7 @@ pub(crate) fn to_known_assoc_constant(associated_to: &Path, name: &str) -> Optio
         },
         _ => return None,
     };
-    Some(format!("{}_{}", prefix, name))
+    Some(format!("{prefix}_{name}"))
 }
 
 #[derive(Debug, Clone)]
@@ -117,7 +117,27 @@ pub enum Literal {
 }
 
 impl Literal {
-    fn replace_self_with(&mut self, self_ty: &Path) {
+    pub fn add_dependencies(&self, library: &Library, out: &mut Dependencies) {
+        self.visit(&mut |lit| {
+            match lit {
+                Literal::Struct {
+                    ref path,
+                    export_name: _,
+                    fields: _,
+                }
+                | Literal::Path {
+                    associated_to: Some((ref path, _)),
+                    name: _,
+                } => {
+                    out.add(library, path);
+                }
+                _ => {}
+            }
+            true
+        });
+    }
+
+    pub fn replace_self_with(&mut self, self_ty: &Path) {
         match *self {
             Literal::PostfixUnaryOp { ref mut value, .. } => {
                 value.replace_self_with(self_ty);
@@ -333,8 +353,7 @@ impl Literal {
                     syn::BinOp::ShrAssign(..) => ">>=",
                     currently_unknown => {
                         return Err(format!(
-                            "unsupported binary operator: {:?}",
-                            currently_unknown
+                            "unsupported binary operator: {currently_unknown:?}"
                         ))
                     }
                 };
@@ -351,7 +370,7 @@ impl Literal {
                     syn::Lit::Byte(ref value) => Ok(Literal::Expr(format!("{}", value.value()))),
                     syn::Lit::Char(ref value) => Ok(Literal::Expr(match value.value() as u32 {
                         0..=255 => format!("'{}'", value.value().escape_default()),
-                        other_code => format!(r"U'\U{:08X}'", other_code),
+                        other_code => format!(r"U'\U{other_code:08X}'"),
                     })),
                     syn::Lit::Int(ref value) => {
                         let suffix = match value.suffix() {
@@ -467,7 +486,7 @@ impl Literal {
                             name: path.segments[1].ident.to_string(),
                         }
                     }
-                    _ => return Err(format!("Unsupported path expression. {:?}", path)),
+                    _ => return Err(format!("Unsupported path expression. {path:?}")),
                 })
             }
 
@@ -547,7 +566,15 @@ impl Constant {
         documentation: Documentation,
         associated_to: Option<Path>,
     ) -> Self {
-        let export_name = path.name().to_owned();
+        let export_name = match associated_to.clone() {
+            Some(associated_to) => path
+                .name()
+                .strip_suffix(associated_to.name())
+                .unwrap()
+                .to_owned(),
+            None => path.name().to_owned(),
+        };
+
         Self {
             path,
             export_name,
@@ -572,6 +599,7 @@ impl Item for Constant {
 
     fn add_dependencies(&self, library: &Library, out: &mut Dependencies) {
         self.ty.add_dependencies(library, out);
+        self.value.add_dependencies(library, out);
     }
 
     fn export_name(&self) -> &str {
@@ -629,13 +657,16 @@ impl Constant {
         debug_assert!(config.structure.associated_constants_in_body);
         debug_assert!(config.constant.allow_static_const);
 
+        let condition = self.cfg.to_condition(config);
+        condition.write_before(config, out);
         if let Type::Ptr { is_const: true, .. } = self.ty {
             out.write("static ");
         } else {
             out.write("static const ");
         }
         language_backend.write_type(out, &self.ty);
-        write!(out, " {};", self.export_name())
+        write!(out, " {};", self.export_name());
+        condition.write_after(config, out);
     }
 
     pub fn write<F: Write, LB: LanguageBackend>(
@@ -729,12 +760,12 @@ impl Constant {
                 }
 
                 language_backend.write_type(out, &self.ty);
-                write!(out, " {} = ", name);
+                write!(out, " {name} = ");
                 language_backend.write_literal(out, value);
                 write!(out, ";");
             }
             Language::Cxx | Language::C => {
-                write!(out, "#define {} ", name);
+                write!(out, "#define {name} ");
                 language_backend.write_literal(out, value);
             }
             Language::Cython => {
@@ -742,7 +773,7 @@ impl Constant {
                 language_backend.write_type(out, &self.ty);
                 // For extern Cython declarations the initializer is ignored,
                 // but still useful as documentation, so we write it as a comment.
-                write!(out, " {} # = ", name);
+                write!(out, " {name} # = ");
                 language_backend.write_literal(out, value);
             }
             Language::Csharp => {

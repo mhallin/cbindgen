@@ -47,7 +47,7 @@ impl FromStr for Language {
             "CS" => Ok(Language::Csharp),
             "csharp" => Ok(Language::Csharp),
             "CSharp" => Ok(Language::Csharp),
-            _ => Err(format!("Unrecognized Language: '{}'.", s)),
+            _ => Err(format!("Unrecognized Language: '{s}'.")),
         }
     }
 }
@@ -109,7 +109,7 @@ impl FromStr for LineEndingStyle {
             "lf" => Ok(Self::LF),
             "crlf" => Ok(Self::CRLF),
             "cr" => Ok(Self::CR),
-            _ => Err(format!("Unrecognized line ending style: '{}'.", s)),
+            _ => Err(format!("Unrecognized line ending style: '{s}'.")),
         }
     }
 }
@@ -132,7 +132,7 @@ impl FromStr for Braces {
             "same_line" => Ok(Braces::SameLine),
             "NextLine" => Ok(Braces::NextLine),
             "next_line" => Ok(Braces::NextLine),
-            _ => Err(format!("Unrecognized Braces: '{}'.", s)),
+            _ => Err(format!("Unrecognized Braces: '{s}'.")),
         }
     }
 }
@@ -158,7 +158,7 @@ impl FromStr for Layout {
             "vertical" => Ok(Layout::Vertical),
             "Auto" => Ok(Layout::Auto),
             "auto" => Ok(Layout::Auto),
-            _ => Err(format!("Unrecognized Layout: '{}'.", s)),
+            _ => Err(format!("Unrecognized Layout: '{s}'.")),
         }
     }
 }
@@ -188,7 +188,7 @@ impl FromStr for DocumentationStyle {
             "doxy" => Ok(DocumentationStyle::Doxy),
             "csharp" => Ok(DocumentationStyle::CSharp),
             "auto" => Ok(DocumentationStyle::Auto),
-            _ => Err(format!("Unrecognized documentation style: '{}'.", s)),
+            _ => Err(format!("Unrecognized documentation style: '{s}'.")),
         }
     }
 }
@@ -209,7 +209,7 @@ impl FromStr for DocumentationLength {
         match s.to_lowercase().as_ref() {
             "short" => Ok(DocumentationLength::Short),
             "full" => Ok(DocumentationLength::Full),
-            _ => Err(format!("Unrecognized documentation style: '{}'.", s)),
+            _ => Err(format!("Unrecognized documentation style: '{s}'.")),
         }
     }
 }
@@ -261,7 +261,7 @@ impl FromStr for Style {
             "tag" => Ok(Style::Tag),
             "Type" => Ok(Style::Type),
             "type" => Ok(Style::Type),
-            _ => Err(format!("Unrecognized Style: '{}'.", s)),
+            _ => Err(format!("Unrecognized Style: '{s}'.")),
         }
     }
 }
@@ -295,7 +295,7 @@ impl FromStr for ItemType {
             "typedefs" => Typedefs,
             "opaque" => OpaqueItems,
             "functions" => Functions,
-            _ => return Err(format!("Unrecognized Style: '{}'.", s)),
+            _ => return Err(format!("Unrecognized Style: '{s}'.")),
         })
     }
 }
@@ -317,7 +317,7 @@ impl FromStr for SortKey {
         Ok(match &*s.to_lowercase() {
             "name" => Name,
             "none" => None,
-            _ => return Err(format!("Unrecognized sort option: '{}'.", s)),
+            _ => return Err(format!("Unrecognized sort option: '{s}'.")),
         })
     }
 }
@@ -760,7 +760,7 @@ impl FromStr for Profile {
         match s {
             "debug" | "Debug" => Ok(Profile::Debug),
             "release" | "Release" => Ok(Profile::Release),
-            _ => Err(format!("Unrecognized Profile: '{}'.", s)),
+            _ => Err(format!("Unrecognized Profile: '{s}'.")),
         }
     }
 }
@@ -1162,7 +1162,7 @@ impl Config {
         })?;
 
         let mut config = toml::from_str::<Config>(&config_text)
-            .map_err(|e| format!("Couldn't parse config file: {}.", e))?;
+            .map_err(|e| format!("Couldn't parse config file: {e}."))?;
         config.config_path = Some(StdPathBuf::from(file_name.as_ref()));
         Ok(config)
     }

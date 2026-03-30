@@ -92,7 +92,7 @@ impl Function {
                 if !self.path.name().starts_with(&type_name) {
                     return Some(self.path.to_string());
                 }
-                (format!("{}.", type_name), type_name)
+                (format!("{type_name}."), type_name)
             }
             None => ("".to_string(), "".to_string()),
         };
@@ -110,7 +110,7 @@ impl Function {
             }
             items.join("")
         };
-        Some(format!("{}{}({})", type_prefix, item_name, item_args))
+        Some(format!("{type_prefix}{item_name}({item_args})"))
     }
 
     pub fn path(&self) -> &Path {
@@ -199,8 +199,7 @@ impl Function {
                     .collect();
                 if parts.len() != 2 {
                     warn!(
-                        "{:?} does not follow the correct syntax, so the annotation is being ignored",
-                        parts
+                        "{parts:?} does not follow the correct syntax, so the annotation is being ignored"
                     );
                     continue;
                 }
@@ -286,8 +285,7 @@ impl SynFnArgHelpers for syn::FnArg {
                     }
                     _ => {
                         return Err(format!(
-                            "Parameter has an unsupported argument name: {:?}",
-                            pat
+                            "Parameter has an unsupported argument name: {pat:?}"
                         ))
                     }
                 };

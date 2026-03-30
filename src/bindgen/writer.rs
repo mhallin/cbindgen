@@ -198,12 +198,12 @@ impl<'a, F: Write> SourceWriter<'a, F> {
     }
 
     pub fn write(&mut self, text: &'static str) {
-        write!(self, "{}", text);
+        write!(self, "{text}");
     }
 
     pub fn write_raw_block(&mut self, block: &str) {
         self.line_started = true;
-        write!(self, "{}", block);
+        write!(self, "{block}");
     }
 
     pub fn write_fmt(&mut self, fmt: ::std::fmt::Arguments) {
@@ -231,11 +231,11 @@ impl<'a, F: Write> SourceWriter<'a, F> {
             match list_type {
                 ListType::Join(text) => {
                     if i != items.len() - 1 {
-                        write!(self, "{}", text);
+                        write!(self, "{text}");
                     }
                 }
                 ListType::Cap(text) | ListType::Wrap(_, text) => {
-                    write!(self, "{}", text);
+                    write!(self, "{text}");
                 }
             }
         }
@@ -264,11 +264,11 @@ impl<'a, F: Write> SourceWriter<'a, F> {
             match list_type {
                 ListType::Join(text) => {
                     if i != items.len() - 1 {
-                        write!(self, "{}", text);
+                        write!(self, "{text}");
                     }
                 }
                 ListType::Cap(text) | ListType::Wrap(_, text) => {
-                    write!(self, "{}", text);
+                    write!(self, "{text}");
                 }
             }
 
