@@ -1,6 +1,7 @@
 use cbindgen::*;
 
 use serial_test::serial;
+use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -17,7 +18,12 @@ fn build_using_lib(config: fn(Builder) -> Builder) -> tempfile::TempDir {
         .tempdir()
         .expect("Creating tmp dir failed");
 
-    std::env::set_var("CARGO_EXPAND_TARGET_DIR", tmp_dir.path());
+    unsafe {
+        env::set_var("CARGO_EXPAND_TARGET_DIR", tmp_dir.path());
+        env::remove_var("CARGO_BUILD_TARGET");
+        // ^ avoid unexpected change of layout of the target directory;
+        // ... see: https://doc.rust-lang.org/cargo/guide/build-cache.html
+    }
     let builder = Builder::new()
         .with_config(Config::from_file(expand_dep_test_dir.join("cbindgen.toml")).unwrap())
         .with_crate(expand_dep_test_dir);
@@ -45,6 +51,9 @@ fn build_using_bin(extra_args: &[&str]) -> tempfile::TempDir {
     Command::new(cbindgen_path)
         .current_dir(expand_dep_test_dir)
         .env("CARGO_EXPAND_TARGET_DIR", tmp_dir.path())
+        .env_remove("CARGO_BUILD_TARGET")
+        // ^ avoid unexpected change of layout of the target directory;
+        // ... see: https://doc.rust-lang.org/cargo/guide/build-cache.html
         .args(extra_args)
         .output()
         .expect("build should succeed");
@@ -85,6 +94,16 @@ fn lib_explicit_release_build() {
 fn bin_default_uses_debug_build() {
     let target_dir = build_using_bin(&[]);
     assert_eq!(get_contents_of_dir(target_dir.path()), &["debug"]);
+}
+
+#[test]
+#[serial]
+fn bin_ignore_cargo_build_target_in_tests() {
+    unsafe {
+        env::set_var("CARGO_BUILD_TARGET", "x86_64-unknown-linux-gnu");
+    }
+    // ^ this env var should be ignored:
+    bin_default_uses_debug_build();
 }
 
 #[test]
