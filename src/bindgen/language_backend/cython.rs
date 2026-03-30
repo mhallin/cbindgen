@@ -42,6 +42,13 @@ impl<'a> CythonLanguageBackend<'a> {
 }
 
 impl LanguageBackend for CythonLanguageBackend<'_> {
+    fn write_delegate_types<W: Write>(
+        &mut self,
+        _out: &mut SourceWriter<W>,
+        _f: &crate::bindgen::ir::Function,
+    ) {
+    }
+
     fn write_headers<W: Write>(&self, out: &mut SourceWriter<W>, package_version: &str) {
         if self.config.package_version {
             write!(out, "''' Package version: {} '''", package_version);

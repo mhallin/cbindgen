@@ -49,6 +49,8 @@ pub trait LanguageBackend: Sized {
         }
     }
 
+    fn write_delegate_types<W: Write>(&mut self, out: &mut SourceWriter<W>, f: &Function);
+
     fn write_function_with_layout<W: Write>(
         &mut self,
         config: &Config,
@@ -62,6 +64,7 @@ pub trait LanguageBackend: Sized {
         if config.language == Language::Csharp {
             write!(out, "public partial class {}", config.csharp.toplevel_class_name(&func.annotations));
             out.open_brace();
+            self.write_delegate_types(out, func);
         }
 
         let condition = func.cfg.to_condition(config);

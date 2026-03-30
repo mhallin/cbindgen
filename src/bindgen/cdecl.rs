@@ -527,6 +527,16 @@ pub fn write_field<F: Write, LB: LanguageBackend>(
         .write(language_backend, out, Some(ident), config);
 }
 
+pub fn write_arg<F: Write, LB: LanguageBackend>(
+    language_backend: &mut LB,
+    out: &mut SourceWriter<F>,
+    t: &Type,
+    ident: &str,
+    config: &Config,
+) {
+    CDecl::from_type(t, config).write(language_backend, out, Some(ident), config);
+}
+
 pub fn write_type<F: Write, LB: LanguageBackend>(
     language_backend: &mut LB,
     out: &mut SourceWriter<F>,

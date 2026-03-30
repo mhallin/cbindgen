@@ -1,7 +1,7 @@
 use crate::bindgen::ir::{
     to_known_assoc_constant, ConditionWrite, DeprecatedNoteKind, Documentation, Enum, EnumVariant,
-    Field, GenericParams, Item, Literal, OpaqueItem, ReprAlign, Static, Struct, ToCondition, Type,
-    Typedef, Union,
+    Field, Function, GenericParams, Item, Literal, OpaqueItem, ReprAlign, Static, Struct,
+    ToCondition, Type, Typedef, Union,
 };
 use crate::bindgen::language_backend::LanguageBackend;
 use crate::bindgen::rename::IdentifierType;
@@ -505,6 +505,56 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
                 write!(out, "#endif  // {}", f);
             }
             out.new_line();
+        }
+    }
+
+    fn write_delegate_types<F: Write>(&mut self, out: &mut SourceWriter<F>, f: &Function) {
+        let rename_ident;
+        let self_name = match f.annotations.atom("rename") {
+            Some(Some(rename)) if self.config.language == Language::Csharp => {
+                rename_ident = rename;
+                rename_ident.as_str()
+            }
+            _ => f.path().name(),
+        };
+        for (i, arg) in f.args.iter().enumerate() {
+            match &arg.ty {
+                Type::FuncPtr {
+                    ret,
+                    args,
+                    is_nullable: _,
+                    never_return: _,
+                } => {
+                    out.write("[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
+                    out.new_line();
+                    out.write("public delegate ");
+                    cdecl::write_type(self, out, ret, self.config);
+                    write!(
+                        out,
+                        " {}__{}(",
+                        self_name,
+                        arg.name.clone().unwrap_or_else(|| format!("{}", i))
+                    );
+
+                    for (arg_i, (arg_name, arg_ty)) in args.iter().enumerate() {
+                        if arg_i > 0 {
+                            out.write(", ");
+                        }
+                        cdecl::write_arg(
+                            self,
+                            out,
+                            arg_ty,
+                            &arg_name.clone().unwrap_or_else(|| format!("_{}", arg_i)),
+                            self.config,
+                        );
+                    }
+
+                    out.write(");");
+                    out.new_line();
+                    out.new_line();
+                }
+                _ => {}
+            }
         }
     }
 

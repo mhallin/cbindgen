@@ -79,6 +79,9 @@ const RESERVED_KEYWORDS: &[&str] = &[
     "volatile",
     "wchar_t",
     "while",
+    "in",
+    "out",
+    "ref",
 ];
 
 pub fn escape(rust_identifier: &mut String) {
