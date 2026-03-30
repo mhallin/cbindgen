@@ -3,21 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::io::Write;
 
 use syn::ext::IdentExt;
 
-use crate::bindgen::config::{Config, Language};
+use crate::bindgen::config::Config;
 use crate::bindgen::declarationtyperesolver::DeclarationTypeResolver;
 use crate::bindgen::dependencies::Dependencies;
 use crate::bindgen::ir::{
-    AnnotationSet, Cfg, ConditionWrite, Documentation, Field, GenericArgument, GenericParams, Item,
-    ItemContainer, Path, ToCondition, Type,
+    AnnotationSet, Cfg, Documentation, GenericArgument, GenericParams, Item, ItemContainer, Path,
+    Type,
 };
 use crate::bindgen::library::Library;
 use crate::bindgen::mangle;
 use crate::bindgen::monomorph::Monomorphs;
-use crate::bindgen::writer::{Source, SourceWriter};
 
 /// A type alias that is represented as a C typedef
 #[derive(Debug, Clone)]
@@ -91,18 +89,12 @@ impl Typedef {
         }
     }
 
-    pub fn is_generic(&self) -> bool {
-        self.generic_params.len() > 0
-    }
-
     pub fn add_monomorphs(&self, library: &Library, out: &mut Monomorphs) {
         // Generic structs can instantiate monomorphs only once they've been
         // instantiated. See `instantiate_monomorph` for more details.
-        if self.is_generic() {
-            return;
+        if !self.is_generic() {
+            self.aliased.add_monomorphs(library, out);
         }
-
-        self.aliased.add_monomorphs(library, out);
     }
 
     pub fn mangle_paths(&mut self, monomorphs: &Monomorphs) {
@@ -131,13 +123,12 @@ impl Item for Typedef {
         &mut self.annotations
     }
 
-    fn container(&self) -> ItemContainer {
-        ItemContainer::Typedef(self.clone())
+    fn documentation(&self) -> &Documentation {
+        &self.documentation
     }
 
-    fn rename_for_config(&mut self, config: &Config) {
-        config.export.rename(&mut self.export_name);
-        self.aliased.rename_for_config(config, &self.generic_params);
+    fn container(&self) -> ItemContainer {
+        ItemContainer::Typedef(self.clone())
     }
 
     fn collect_declaration_types(&self, resolver: &mut DeclarationTypeResolver) {
@@ -146,6 +137,15 @@ impl Item for Typedef {
 
     fn resolve_declaration_types(&mut self, resolver: &DeclarationTypeResolver) {
         self.aliased.resolve_declaration_types(resolver);
+    }
+
+    fn generic_params(&self) -> &GenericParams {
+        &self.generic_params
+    }
+
+    fn rename_for_config(&mut self, config: &Config) {
+        config.export.rename(&mut self.export_name);
+        self.aliased.rename_for_config(config, &self.generic_params);
     }
 
     fn add_dependencies(&self, library: &Library, out: &mut Dependencies) {
@@ -177,43 +177,5 @@ impl Item for Typedef {
         );
 
         out.insert_typedef(library, self, monomorph, generic_values.to_owned());
-    }
-}
-
-impl Source for Typedef {
-    fn write<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
-        let condition = self.cfg.to_condition(config);
-        condition.write_before(config, out);
-
-        self.documentation.write(config, out);
-
-        self.generic_params.write(config, out);
-
-        match config.language {
-            Language::Cxx => {
-                write!(out, "using {} = ", self.export_name());
-                self.aliased.write(config, out);
-            }
-            Language::C | Language::Cython => {
-                write!(out, "{} ", config.language.typedef());
-                Field::from_name_and_type(self.export_name().to_owned(), self.aliased.clone())
-                    .write(config, out);
-            }
-            Language::Csharp => {
-                write!(out, "public struct {} {{", self.export_name());
-                out.new_line();
-                out.push_tab();
-                write!(out, "public ");
-                self.aliased.write(config, out);
-                write!(out, " _0;");
-                out.pop_tab();
-                out.new_line();
-                write!(out, "}}");
-            }
-        }
-
-        out.write(";");
-
-        condition.write_after(config, out);
     }
 }

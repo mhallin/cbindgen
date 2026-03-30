@@ -3,24 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::io::Write;
 
 use syn::ext::IdentExt;
 
-use crate::bindgen::cdecl;
-use crate::bindgen::config::{Config, Language, Layout};
+use crate::bindgen::config::{Config, Language};
 use crate::bindgen::declarationtyperesolver::DeclarationTypeResolver;
 use crate::bindgen::dependencies::Dependencies;
-use crate::bindgen::ir::{
-    AnnotationSet, Cfg, ConditionWrite, DeprecatedNoteKind, Documentation, GenericPath, Path,
-    ToCondition, Type,
-};
+use crate::bindgen::ir::{AnnotationSet, Cfg, Documentation, GenericPath, Path, Type};
 use crate::bindgen::library::Library;
 use crate::bindgen::monomorph::Monomorphs;
 use crate::bindgen::rename::{IdentifierType, RenameRule};
 use crate::bindgen::reserved;
 use crate::bindgen::utilities::IterHelpers;
-use crate::bindgen::writer::{Source, SourceWriter};
 
 #[derive(Debug, Clone)]
 pub struct FunctionArgument {
@@ -55,6 +49,14 @@ impl Function {
         mod_cfg: Option<&Cfg>,
     ) -> Result<Function, String> {
         let mut args = sig.inputs.iter().try_skip_map(|x| x.as_argument())?;
+        if sig.variadic.is_some() {
+            args.push(FunctionArgument {
+                name: None,
+                ty: Type::Primitive(super::PrimitiveType::VaList),
+                array_length: None,
+                is_out_arg: false,
+            })
+        }
 
         let (mut ret, never_return) = Type::load_from_output(&sig.output)?;
 
@@ -238,224 +240,31 @@ impl Function {
             }
         }
     }
-
-    fn write_delegate_types<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
-        let rename_ident;
-        let self_name = match self.annotations.atom("rename") {
-            Some(Some(rename)) if config.language == Language::Csharp => {
-                rename_ident = rename;
-                rename_ident.as_str()
-            }
-            _ => self.path().name(),
-        };
-        for (i, arg) in self.args.iter().enumerate() {
-            match &arg.ty {
-                Type::FuncPtr { ret, args, is_nullable: _, never_return: _ } => {
-                    out.write("[UnmanagedFunctionPointer(CallingConvention.Cdecl)]");
-                    out.new_line();
-                    out.write("public delegate ");
-                    cdecl::write_type(out, ret, config);
-                    write!(
-                        out,
-                        " {}__{}(",
-                        self_name,
-                        arg.name.clone().unwrap_or_else(|| format!("{}", i))
-                    );
-
-                    for (arg_i, (arg_name, arg_ty)) in args.iter().enumerate() {
-                        if arg_i > 0 {
-                            out.write(", ");
-                        }
-                        cdecl::write_arg(
-                            out,
-                            arg_ty,
-                            &arg_name.clone().unwrap_or_else(|| format!("_{}", arg_i)),
-                            config,
-                        );
-                    }
-
-                    out.write(");");
-                    out.new_line();
-                    out.new_line();
-                }
-                _ => {}
-            }
-        }
-    }
-}
-
-impl Source for Function {
-    fn write<F: Write>(&self, config: &Config, out: &mut SourceWriter<F>) {
-        fn write_1<W: Write>(func: &Function, config: &Config, out: &mut SourceWriter<W>) {
-            let prefix = config.function.prefix(&func.annotations);
-            let postfix = config.function.postfix(&func.annotations);
-
-            let condition = func.cfg.to_condition(config);
-            condition.write_before(config, out);
-
-            func.documentation.write(config, out);
-
-            if config.language == Language::Csharp {
-                if let Some(Some(_)) = func.annotations.atom("rename") {
-                    write!(
-                        out,
-                        "[DllImport({}, EntryPoint={:?})]",
-                        config.csharp.dll_name,
-                        func.path.name()
-                    );
-                } else {
-                    write!(out, "[DllImport({})]", config.csharp.dll_name);
-                }
-                out.new_line();
-                out.write("public static ");
-            }
-
-            if func.extern_decl || config.language == Language::Csharp {
-                out.write("extern ");
-            } else {
-                if let Some(ref prefix) = prefix {
-                    write!(out, "{} ", prefix);
-                }
-                if func.annotations.must_use(config) {
-                    if let Some(ref anno) = config.function.must_use {
-                        write!(out, "{} ", anno);
-                    }
-                }
-                if let Some(note) = func
-                    .annotations
-                    .deprecated_note(config, DeprecatedNoteKind::Function)
-                {
-                    write!(out, "{} ", note);
-                }
-            }
-            cdecl::write_func(out, func, Layout::Horizontal, config);
-
-            if !func.extern_decl {
-                if let Some(ref postfix) = postfix {
-                    write!(out, " {}", postfix);
-                }
-            }
-
-            if let Some(ref swift_name_macro) = config.function.swift_name_macro {
-                if let Some(swift_name) = func.swift_name(config) {
-                    write!(out, " {}({})", swift_name_macro, swift_name);
-                }
-            }
-
-            out.write(";");
-
-            condition.write_after(config, out);
-        }
-
-        fn write_2<W: Write>(func: &Function, config: &Config, out: &mut SourceWriter<W>) {
-            let prefix = config.function.prefix(&func.annotations);
-            let postfix = config.function.postfix(&func.annotations);
-
-            let condition = func.cfg.to_condition(config);
-
-            condition.write_before(config, out);
-
-            func.documentation.write(config, out);
-
-            if config.language == Language::Csharp {
-                if let Some(Some(_)) = func.annotations.atom("rename") {
-                    write!(
-                        out,
-                        "[DllImport({}, EntryPoint={:?})]",
-                        config.csharp.dll_name,
-                        func.path.name()
-                    );
-                } else {
-                    write!(out, "[DllImport({})]", config.csharp.dll_name);
-                }
-                out.new_line();
-                out.write("public static ");
-            }
-
-            if func.extern_decl || config.language == Language::Csharp {
-                out.write("extern ");
-            } else {
-                if let Some(ref prefix) = prefix {
-                    write!(out, "{}", prefix);
-                    out.new_line();
-                }
-                if func.annotations.must_use(config) {
-                    if let Some(ref anno) = config.function.must_use {
-                        write!(out, "{}", anno);
-                        out.new_line();
-                    }
-                }
-                if let Some(note) = func
-                    .annotations
-                    .deprecated_note(config, DeprecatedNoteKind::Function)
-                {
-                    write!(out, "{}", note);
-                    out.new_line();
-                }
-            }
-            cdecl::write_func(out, func, Layout::Vertical, config);
-            if !func.extern_decl {
-                if let Some(ref postfix) = postfix {
-                    out.new_line();
-                    write!(out, "{}", postfix);
-                }
-            }
-
-            if let Some(ref swift_name_macro) = config.function.swift_name_macro {
-                if let Some(swift_name) = func.swift_name(config) {
-                    write!(out, " {}({})", swift_name_macro, swift_name);
-                }
-            }
-
-            out.write(";");
-
-            condition.write_after(config, out);
-        }
-
-        if config.language == Language::Csharp {
-            write!(
-                out,
-                "public partial class {}",
-                config.csharp.toplevel_class_name(&self.annotations)
-            );
-            out.open_brace();
-
-            self.write_delegate_types(config, out);
-        }
-
-        match config.function.args {
-            Layout::Horizontal => write_1(self, config, out),
-            Layout::Vertical => write_2(self, config, out),
-            Layout::Auto => {
-                if !out.try_write(|out| write_1(self, config, out), config.line_length) {
-                    write_2(self, config, out)
-                }
-            }
-        }
-
-        if config.language == Language::Csharp {
-            out.close_brace(false);
-        }
-    }
 }
 
 trait SynFnArgHelpers {
     fn as_argument(&self) -> Result<Option<FunctionArgument>, String>;
 }
 
-fn gen_self_type(receiver: &syn::Receiver) -> Type {
-    let self_ty = Type::Path(GenericPath::self_path());
+fn gen_self_type(receiver: &syn::Receiver) -> Result<Type, String> {
+    let mut self_ty = Type::Path(GenericPath::self_path());
+
+    // Custom self type
+    if receiver.colon_token.is_some() {
+        self_ty = Type::load(receiver.ty.as_ref())?.unwrap_or(self_ty);
+    }
+
     if receiver.reference.is_none() {
-        return self_ty;
+        return Ok(self_ty);
     }
 
     let is_const = receiver.mutability.is_none();
-    Type::Ptr {
+    Ok(Type::Ptr {
         ty: Box::new(self_ty),
         is_const,
         is_nullable: false,
         is_ref: false,
-    }
+    })
 }
 
 impl SynFnArgHelpers for syn::FnArg {
@@ -464,10 +273,18 @@ impl SynFnArgHelpers for syn::FnArg {
             syn::FnArg::Typed(syn::PatType {
                 ref pat, ref ty, ..
             }) => {
+                let ty = match Type::load(ty)? {
+                    Some(x) => x,
+                    None => return Ok(None),
+                };
                 let name = match **pat {
                     syn::Pat::Wild(..) => None,
                     syn::Pat::Ident(syn::PatIdent { ref ident, .. }) => {
-                        Some(ident.unraw().to_string())
+                        if ty == Type::Primitive(super::PrimitiveType::VaList) {
+                            None
+                        } else {
+                            Some(ident.unraw().to_string())
+                        }
                     }
                     _ => {
                         return Err(format!(
@@ -475,10 +292,6 @@ impl SynFnArgHelpers for syn::FnArg {
                             pat
                         ))
                     }
-                };
-                let ty = match Type::load(ty)? {
-                    Some(x) => x,
-                    None => return Ok(None),
                 };
                 if let Type::Array(..) = ty {
                     return Err("Array as function arguments are not supported".to_owned());
@@ -492,7 +305,7 @@ impl SynFnArgHelpers for syn::FnArg {
             }
             syn::FnArg::Receiver(ref receiver) => Ok(Some(FunctionArgument {
                 name: Some("self".to_string()),
-                ty: gen_self_type(receiver),
+                ty: gen_self_type(receiver)?,
                 array_length: None,
                 is_out_arg: false,
             })),

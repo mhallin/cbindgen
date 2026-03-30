@@ -8,6 +8,8 @@ use std::path::Path;
 use std::process::Command;
 use std::{env, fs, str};
 
+use pretty_assertions::assert_eq;
+
 // Set automatically by cargo for integration tests
 static CBINDGEN_PATH: &str = env!("CARGO_BIN_EXE_cbindgen");
 
@@ -26,6 +28,7 @@ fn run_cbindgen(
     cpp_compat: bool,
     style: Option<Style>,
     generate_depfile: bool,
+    package_version: bool,
 ) -> (Vec<u8>, Option<String>) {
     assert!(
         !(output.is_none() && generate_depfile),
@@ -59,6 +62,10 @@ fn run_cbindgen(
         Language::Csharp => {
             command.arg("--lang").arg("cs");
         }
+    }
+
+    if package_version {
+        command.arg("--package-version");
     }
 
     if let Some(style) = style {
@@ -209,6 +216,7 @@ fn run_compile_test(
     cpp_compat: bool,
     style: Option<Style>,
     cbindgen_outputs: &mut HashSet<Vec<u8>>,
+    package_version: bool,
 ) {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let tests_path = Path::new(&crate_dir).join("tests");
@@ -258,6 +266,7 @@ fn run_compile_test(
         cpp_compat,
         style,
         generate_depfile,
+        package_version,
     );
     if generate_depfile {
         let depfile = depfile_contents.expect("No depfile generated");
@@ -285,8 +294,11 @@ fn run_compile_test(
         }
     } else {
         if env::var_os("CBINDGEN_TEST_VERIFY").is_some() {
+            use std::str::from_utf8;
             let prev_cbindgen_output = fs::read(&generated_file).unwrap();
-            assert_eq!(cbindgen_output, prev_cbindgen_output);
+            let cbindgen_output = from_utf8(&cbindgen_output).unwrap();
+            let prev_cbindgen_output = from_utf8(&prev_cbindgen_output).unwrap();
+            assert_eq!(prev_cbindgen_output, cbindgen_output);
         } else {
             fs::write(&generated_file, &cbindgen_output).unwrap();
         }
@@ -339,6 +351,7 @@ fn test_file(name: &'static str, filename: &'static str) {
                 *cpp_compat,
                 Some(*style),
                 &mut cbindgen_outputs,
+                false,
             );
         }
     }
@@ -351,17 +364,7 @@ fn test_file(name: &'static str, filename: &'static str) {
         /* cpp_compat = */ false,
         None,
         &mut HashSet::new(),
-    );
-
-    run_compile_test(
-        cbindgen_path,
-        name,
-        &test,
-        tmp_dir,
-        Language::Csharp,
         false,
-        None,
-        &mut HashSet::new(),
     );
 
     // `Style::Both` should be identical to `Style::Tag` for Cython.
@@ -375,6 +378,7 @@ fn test_file(name: &'static str, filename: &'static str) {
             /* cpp_compat = */ false,
             Some(*style),
             &mut cbindgen_outputs,
+            false,
         );
     }
 }
