@@ -861,13 +861,9 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
         } else if self.config.language == Language::Csharp {
             write!(out, "public struct {}", t.export_name());
             out.open_brace();
-            out.new_line();
-            out.push_tab();
             out.write("public ");
             self.write_type(out, &t.aliased);
-            out.write(" _0");
-            out.pop_tab();
-            out.new_line();
+            out.write(" _0;");
             out.close_brace(false);
         } else {
             write!(out, "{} ", self.config.language.typedef());
