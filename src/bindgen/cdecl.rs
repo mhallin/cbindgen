@@ -43,6 +43,7 @@ struct CDecl {
     type_ctype: Option<DeclarationType>,
     is_struct_field: bool,
     is_out_arg: bool,
+    is_this_arg: bool,
     deprecated: Option<String>,
 }
 
@@ -56,6 +57,7 @@ impl CDecl {
             type_ctype: None,
             is_struct_field: false,
             is_out_arg: false,
+            is_this_arg: false,
             deprecated: None,
         }
     }
@@ -70,6 +72,7 @@ impl CDecl {
         t: &Type,
         array_length: Option<&str>,
         is_out_arg: bool,
+        is_this_arg: bool,
         config: &Config,
     ) -> CDecl {
         let mut cdecl = CDecl::new();
@@ -78,6 +81,7 @@ impl CDecl {
             None => {
                 cdecl = CDecl::from_type(t, config);
                 cdecl.is_out_arg = is_out_arg;
+                cdecl.is_this_arg = is_this_arg;
                 return cdecl;
             }
         };
@@ -91,6 +95,7 @@ impl CDecl {
         let ptr_as_array = Type::Array(ty.clone(), ConstExpr::Value(length.to_string()));
         cdecl.build_type(&ptr_as_array, *is_const, config);
         cdecl.is_out_arg = is_out_arg;
+        cdecl.is_this_arg = is_this_arg;
         cdecl
     }
 
@@ -116,6 +121,7 @@ impl CDecl {
                         &arg.ty,
                         arg.array_length.as_deref(),
                         arg.is_out_arg,
+                        arg.is_this_arg,
                         config,
                     ),
                 )
@@ -264,6 +270,9 @@ impl CDecl {
             } else {
                 for declarator in self.declarators.iter() {
                     if let CDeclarator::Ptr { .. } = declarator {
+                        if self.is_this_arg {
+                            out.write("this ");
+                        }
                         if self.is_out_arg {
                             out.write("out ");
                         } else {

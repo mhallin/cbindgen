@@ -22,6 +22,7 @@ pub struct FunctionArgument {
     pub ty: Type,
     pub array_length: Option<String>,
     pub is_out_arg: bool,
+    pub is_this_arg: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -55,6 +56,7 @@ impl Function {
                 ty: Type::Primitive(super::PrimitiveType::VaList),
                 array_length: None,
                 is_out_arg: false,
+                is_this_arg: false,
             })
         }
 
@@ -174,6 +176,7 @@ impl Function {
                         ty: arg.ty,
                         array_length: None,
                         is_out_arg: false,
+                        is_this_arg: false,
                     }
                 })
                 .collect()
@@ -225,7 +228,7 @@ impl Function {
                     Type::Ptr { .. } => {}
                     _ => continue,
                 }
-                
+
                 let name = match &arg.name {
                     Some(name) => name,
                     None => continue,
@@ -234,6 +237,12 @@ impl Function {
                 if tuples.iter().any(|n| n == name) {
                     arg.is_out_arg = true;
                 }
+            }
+        }
+
+        if self.annotations.bool("extension-method") == Some(true) {
+            if let Some(first_arg) = self.args.first_mut() {
+                first_arg.is_this_arg = true;
             }
         }
     }
@@ -297,6 +306,7 @@ impl SynFnArgHelpers for syn::FnArg {
                     ty,
                     array_length: None,
                     is_out_arg: false,
+                    is_this_arg: false,
                 }))
             }
             syn::FnArg::Receiver(ref receiver) => Ok(Some(FunctionArgument {
@@ -304,6 +314,7 @@ impl SynFnArgHelpers for syn::FnArg {
                 ty: gen_self_type(receiver)?,
                 array_length: None,
                 is_out_arg: false,
+                is_this_arg: false,
             })),
         }
     }
