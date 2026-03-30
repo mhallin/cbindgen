@@ -59,6 +59,11 @@ pub trait LanguageBackend: Sized {
         let prefix = config.function.prefix(&func.annotations);
         let postfix = config.function.postfix(&func.annotations);
 
+        if config.language == Language::Csharp {
+            write!(out, "public partial class {}", config.csharp.toplevel_class_name(&func.annotations));
+            out.open_brace();
+        }
+
         let condition = func.cfg.to_condition(config);
         condition.write_before(config, out);
 
@@ -125,6 +130,10 @@ pub trait LanguageBackend: Sized {
 
         out.write(";");
         condition.write_after(config, out);
+
+        if config.language == Language::Csharp {
+            out.close_brace(false);
+        }
     }
 
     fn write_type<W: Write>(&mut self, out: &mut SourceWriter<W>, t: &Type);

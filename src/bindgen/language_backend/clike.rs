@@ -67,21 +67,22 @@ impl<'a> CLikeLanguageBackend<'a> {
     }
 
     fn open_close_namespaces<W: Write>(&mut self, out: &mut SourceWriter<W>, open: bool) {
-        let mut namespaces =
-            if self.config.language != Language::Cxx && !self.config.cpp_compatible_c() {
-                vec![]
-            } else {
-                let mut ret = vec![];
-                if let Some(ref namespace) = self.config.namespace {
+        let mut namespaces = if !matches!(self.config.language, Language::Cxx | Language::Csharp)
+            && !self.config.cpp_compatible_c()
+        {
+            vec![]
+        } else {
+            let mut ret = vec![];
+            if let Some(ref namespace) = self.config.namespace {
+                ret.push(&**namespace);
+            }
+            if let Some(ref namespaces) = self.config.namespaces {
+                for namespace in namespaces {
                     ret.push(&**namespace);
                 }
-                if let Some(ref namespaces) = self.config.namespaces {
-                    for namespace in namespaces {
-                        ret.push(&**namespace);
-                    }
-                }
-                ret
-            };
+            }
+            ret
+        };
 
         if namespaces.is_empty() {
             return;
@@ -99,8 +100,16 @@ impl<'a> CLikeLanguageBackend<'a> {
         for namespace in namespaces {
             out.new_line();
             if open {
-                write!(out, "namespace {} {{", namespace)
+                write!(out, "namespace {} {{", namespace);
+
+                if self.config.language == Language::Csharp {
+                    out.push_tab();
+                }
             } else {
+                if self.config.language == Language::Csharp {
+                    out.pop_tab();
+                }
+
                 write!(out, "}}  // namespace {}", namespace)
             }
         }
@@ -592,6 +601,17 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
         //   typedef struct Name {
         if self.generate_typedef() {
             out.write("typedef ");
+        }
+
+        if self.config.language == Language::Csharp {
+            if let Some(attributes) = s.annotations.list("attributes") {
+                for attribute in attributes {
+                    write!(out, "{}", attribute);
+                    out.new_line();
+                }
+            }
+
+            out.write("public ");
         }
 
         out.write("struct");

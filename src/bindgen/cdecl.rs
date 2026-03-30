@@ -100,6 +100,11 @@ impl CDecl {
         cdecl
     }
 
+    fn is_field(mut self) -> Self {
+        self.is_struct_field = true;
+        self
+    }
+
     fn build_func(&mut self, f: &Function, layout: Layout, config: &Config) {
         let args = f
             .args
@@ -448,8 +453,12 @@ impl CDecl {
                     }
 
                     match layout {
-                        Layout::Vertical => write_vertical(language_backend, out, config, args, ident),
-                        Layout::Horizontal => write_horizontal(language_backend, out, config, args, ident),
+                        Layout::Vertical => {
+                            write_vertical(language_backend, out, config, args, ident)
+                        }
+                        Layout::Horizontal => {
+                            write_horizontal(language_backend, out, config, args, ident)
+                        }
                         Layout::Auto => {
                             if !out.try_write(
                                 |out| write_horizontal(language_backend, out, config, args, ident),
@@ -507,7 +516,9 @@ pub fn write_field<F: Write, LB: LanguageBackend>(
     ident: &str,
     config: &Config,
 ) {
-    CDecl::from_type(t, config).write(language_backend, out, Some(ident), config);
+    CDecl::from_type(t, config)
+        .is_field()
+        .write(language_backend, out, Some(ident), config);
 }
 
 pub fn write_type<F: Write, LB: LanguageBackend>(
